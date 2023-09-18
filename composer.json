@@ -1,0 +1,24 @@
+{
+    "name": "pajarotin/compose",
+    "require": {
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^9.5"
+    },
+    "autoload": {
+        "psr-4": {
+            "Pajarotin\\Compose\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Pajarotin\\Test\\": "test/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Alberto Mora Cao",
+            "email": "gmlamora@gmail.com"
+        }
+    ]
+}
