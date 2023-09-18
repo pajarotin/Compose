@@ -30,7 +30,7 @@ Those parts can also be extracted from previous donor classes.
 Can be used to automate changes to third parties source code, without resorting to editing it directly.
 
 ## License
-This software is distributed under the [MIT] license. Please read [LICENSE](https://github.com/pajarotin/compose/blob/master/LICENSE) for information on the software availability and distribution.
+This software is distributed under the [MIT] license. Please read [LICENSE](https://github.com/pajarotin/compose/blob/main/LICENSE) for information on the software availability and distribution.
 
 ## Example
 
