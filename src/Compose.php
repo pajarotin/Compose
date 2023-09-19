@@ -4,7 +4,7 @@ namespace Pajarotin\Compose;
  * @package Pajarotin\Compose
  * @author Alberto Mora Cao <gmlamora@gmail.com>
  * @copyright 2023 Alberto Mora Cao
- * @version $Revision: 0.0.1 $ 
+ * @version $Revision: 0.0.2 $ 
  * @license https://mit-license.org/ MIT
  * 
  * "Favor composition over inheritance"
@@ -210,6 +210,13 @@ class Compose {
      * @var array $filesCache
      */
     protected static $filesCache = [];
+
+    /**
+     * Array of compiled source classes
+     * Used to compose new classes with previously composed ones
+     * @var array $filesCache
+     */
+    protected static $compiledCache = [];
 
     /**
      * deferredCompilation() method stores Compose class objects in this array
@@ -766,6 +773,7 @@ class Compose {
         $fullName = static::normalize($this->className, $this->namespace);
         if (!class_exists($fullName, false)) {
             $code = $this->code();
+            static::$compiledCache[$fullName] = explode(PHP_EOL, $code);
             eval($code);
         }
         return new \ReflectionClass($fullName);
@@ -962,8 +970,12 @@ class Compose {
      * @return string;
      */    
     protected static function readMethod($method) {
-        $filename = $method->getFileName();
-        $lines = static::readFileLines($filename);
+        if (array_key_exists($method->class, static::$compiledCache)) {
+            $lines = static::$compiledCache[$method->class];
+        } else {
+            $filename = $method->getFileName();
+            $lines = static::readFileLines($filename);
+        }
         if ($lines === null) {
             return null;
         }
