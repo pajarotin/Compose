@@ -3,7 +3,7 @@
  * @package Pajarotin\Compose
  * @author Alberto Mora Cao <gmlamora@gmail.com>
  * @copyright 2023 Alberto Mora Cao
- * @version $Revision: 0.0.1 $ 
+ * @version $Revision: 0.0.2 $ 
  * @license https://mit-license.org/ MIT
  */
 
@@ -820,5 +820,21 @@ METHOD;
         $methods = $reflection->getMethods();
         $this->assertIsArray($methods);
         $this->assertEquals(0, count($methods));
+    }
+
+    public function testChainedComposition() {
+        $className = 'IntermediateFuseClass';
+        $namespace = 'Pajarotin\\Test\\Compose';
+        $compose = new Compose($className, $namespace);
+        $compose->fuseClass('DonorClassA', 'Pajarotin\\Test\\Compose');
+        $compose->deferredCompilation();
+
+        $className = 'TestChainedComposition';
+        $compose = new Compose($className, $namespace);
+        $compose->fuseClass('IntermediateFuseClass', 'Pajarotin\\Test\\Compose');
+        $compose->deferredCompilation();
+
+        $final = new TestChainedComposition();
+        $this->assertEquals(60, $final->cm());
     }
 }
