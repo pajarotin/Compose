@@ -15,7 +15,7 @@
  - Add donor class property to composed class
  - Add donor class method to composed class
  - Deferred composed class compilation (evaluation of composed code), linked to php autoload system
- - Deferred composed class build (configuration of composed class and), linked to php autoload system
+ - Deferred composed class build (configuration and build of composed class), linked to php autoload system
  - ¡ FULLY EXPERIMENTAL CODE !
 
 ##  "Favor composition over inheritance"
