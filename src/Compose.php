@@ -4,13 +4,13 @@ namespace Pajarotin\Compose;
  * @package Pajarotin\Compose
  * @author Alberto Mora Cao <gmlamora@gmail.com>
  * @copyright 2023 Alberto Mora Cao
- * @version $Revision: 0.0.2 $ 
+ * @version $Revision: 0.0.3 $ 
  * @license https://mit-license.org/ MIT
  * 
  * "Favor composition over inheritance"
  * 
  * Compose class is an experimental tool with the previous catch-phrase in mind
- * Allows building classes dynamically in a "Frankenstein way", extracting parts from others classes.
+ * Allows building classes or traits dynamically in a "Frankenstein way", extracting parts from others classes or traits.
  * 
  * Can be useful to tweak external code, leaving original classes untouched. 
  * Think of those external classes, with an badly located private keyword, in need of a little "Delta".
@@ -65,6 +65,7 @@ namespace Pajarotin\Compose;
  *
  *   - isAbstract($flag)
  *   - isFinal($flag)
+ *   - isReadOnly($flag)
  *   - setNamespace($namespace)
  *   - extends($className, $namespace = '')
  *   - addInterface($interfaceName, $namespace = '')
@@ -73,7 +74,7 @@ namespace Pajarotin\Compose;
  *   - removeTrait($traitName, $namespace = '')
  *   - addConstant($name, $value, $visibility = Compose::PUBLIC)
  *   - removeConstant($name)
- *   - addProperty($name, $hasDefaultValue, $defaultValue, $visibility = Compose::PRIVATE, $scope = Compose::INSTANCE, $type = null)
+ *   - addProperty($name, $hasDefaultValue, $defaultValue, $visibility = Compose::PRIVATE, $scope = Compose::INSTANCE, $type = null, $isReadOnly = false)
  *   - removeProperty($name)
  *   - addMethod($name, $value, $visibility = Compose::PRIVATE, $scope = Compose::INSTANCE, $overriding = Compose::OVERRIDABLE, $returnsReference = false)
  *   - removeMethod($name)
@@ -89,6 +90,17 @@ namespace Pajarotin\Compose;
  *     The build, can be registered to be executed only as required by php autoload system
  */
 class Compose {
+    /**
+     * type: class
+     * @const TYPE_CLASS 0
+     */
+    const TYPE_CLASS = 0;
+
+    /**
+     * type: trait
+     * @const TYPE_TRAIT 1
+     */
+    const TYPE_TRAIT = 1;
 
     /**
      * Scope: instance, regular method or property
@@ -162,6 +174,18 @@ class Compose {
      * @var bool $final
      */
     protected $final = null;
+
+    /**
+     * Indicates wether composed class is read only
+     * @var bool $readOnly
+     */
+    protected $readOnly = null;
+    
+    /**
+     * Indicates which type of object is being composed
+     * @var bool $type
+     */
+    protected $type = self::TYPE_CLASS;
 
     /**
      * Indicates composed class name
@@ -242,8 +266,9 @@ class Compose {
      * @param string $namespace
      */
     public function __construct($className, $namespace = null) {
-        $this->final = false;
         $this->abstract = false;
+        $this->final = false;
+        $this->readOnly = false;
         $this->className = $className;
         $this->namespace = $namespace;
         $this->interfaces = [];
@@ -254,7 +279,29 @@ class Compose {
     }
 
     /**
-     * Return the composed class namespace
+     * Creates a Compose object for the desired composed class indicated by $namespace\$className 
+     * @param string $className
+     * @param string $namespace
+     */
+    public static function newClass($className, $namespace = null) {
+        $compose = new static($className, $namespace);
+        $compose->type = static::TYPE_CLASS;
+        return $compose;
+    }
+    
+    /**
+     * Creates a Compose object for the desired composed trait indicated by $namespace\$traitName 
+     * @param string $traitName
+     * @param string $namespace
+     */
+    public static function newTrait($traitName, $namespace = null) {
+        $compose = new static($traitName, $namespace);
+        $compose->type = static::TYPE_TRAIT;
+        return $compose;
+    }
+
+    /**
+     * Return the composed class/trait namespace
      * @return string
      */
     public function getNamespace() {
@@ -262,7 +309,7 @@ class Compose {
     }
 
     /**
-     * Sets the composed class namespace
+     * Sets the composed class/trait namespace
      * @param string $namespace
      * @return Pajarotin\Compose\Compose
      */
@@ -280,7 +327,15 @@ class Compose {
     }
 
     /**
-     * Sets chunk of code going after the namespace declaration and before the composed class definition.
+     * Returns the composed trait name
+     * @return string
+     */
+    public function getTraitName() {
+        return $this->className;
+    }
+
+    /**
+     * Sets chunk of code going after the namespace declaration and before the composed class/trait definition.
      * For global constants, namespaces aliases, etc
      * @param string $header
      * @return Pajarotin\Compose\Compose
@@ -296,6 +351,9 @@ class Compose {
      * @return Pajarotin\Compose\Compose
      */
     public function isAbstract($flag) {
+        if ($this->type === static::TYPE_TRAIT) {
+            return $this;
+        }
         if ($flag) {
             $this->abstract = true;
         } else {
@@ -310,10 +368,30 @@ class Compose {
      * @return Pajarotin\Compose\Compose
      */
     public function isFinal($flag) {
+        if ($this->type === static::TYPE_TRAIT) {
+            return $this;
+        }
         if ($flag) {
             $this->final = true;
         } else {
             $this->final = false;
+        }
+        return $this;
+    }
+
+    /**
+     * A truish $flag indicates read only composed class
+     * @param bool $flag
+     * @return Pajarotin\Compose\Compose
+     */
+    public function isReadOnly($flag) {
+        if ($this->type === static::TYPE_TRAIT) {
+            return $this;
+        }
+        if ($flag) {
+            $this->readOnly = true;
+        } else {
+            $this->readOnly = false;
         }
         return $this;
     }
@@ -325,6 +403,9 @@ class Compose {
      * @return Pajarotin\Compose\Compose
      */
     public function extends($className, $namespace = null) {
+        if ($this->type === static::TYPE_TRAIT) {
+            return $this;
+        }
         $extends = static::normalize($className, $namespace);
         $this->extends = $extends;
         return $this;
@@ -337,6 +418,9 @@ class Compose {
      * @return Pajarotin\Compose\Compose
      */
     public function addInterface($interfaceName, $namespace = '') {
+        if ($this->type === static::TYPE_TRAIT) {
+            return $this;
+        }
         $interface = static::normalize($interfaceName, $namespace);
         if ($interface===null) {
             return $this;
@@ -353,7 +437,7 @@ class Compose {
      * @return string[]
      */
     public function getInterfaces($name = null) {
-        if ($name) {
+        if (strlen($name)) {
             if (array_key_exists($name, $this->interfaces)) {
                 return [$this->interfaces[$name]];
             }
@@ -385,7 +469,7 @@ class Compose {
     }
 
     /**
-     * Adds a trait to the composed class
+     * Adds a trait to the composed class/trait
      * @param string $traitName
      * @param string $namespace
      * @return Pajarotin\Compose\Compose
@@ -407,7 +491,7 @@ class Compose {
      * @return string[]
      */
     public function getTraits($name = null) {
-        if ($name) {
+        if (strlen($name)) {
             if (array_key_exists($name, $this->traits)) {
                 return [$this->traits[$name]];
             }
@@ -417,7 +501,7 @@ class Compose {
     }
 
     /**
-     * Removes indicated trait from the composed class
+     * Removes indicated trait from the composed class/trait
      * @param string $traitName
      * @param string $namespace
      * @return Pajarotin\Compose\Compose
@@ -446,7 +530,7 @@ class Compose {
      * @return Pajarotin\Compose\Compose
      */
     public function addConstant($name, $value, $visibility = Compose::PUBLIC) {
-        if (!strlen($name)) {
+        if (!strlen($name) || $this->type === static::TYPE_TRAIT) {
             return $this;
         }
         $std = new \stdClass();
@@ -463,7 +547,7 @@ class Compose {
      * @return stdClass[]
      */
     public function getConstants($name = null) {
-        if ($name) {
+        if (strlen($name)) {
             if (array_key_exists($name, $this->constants)) {
                 return [$this->constants[$name]];
             }
@@ -488,16 +572,17 @@ class Compose {
     }
 
     /**
-     * Adds a property to the composed class
+     * Adds a property to the composed class/trait
      * @param string $name
      * @param bool $hasDefaultValue
      * @param mixed $defaultValue
      * @param Compose::PUBLIC|Compose::PROTECTED|Compose::PRIVATE $visibility
      * @param Compose::INSTANCE|Compose::STATIC $scope
      * @param string $type
+     * @param bool $readOnly
      * @return Pajarotin\Compose\Compose
      */
-    public function addProperty($name, $hasDefaultValue, $defaultValue, $visibility = Compose::PRIVATE, $scope = Compose::INSTANCE, $type = null) {
+    public function addProperty($name, $hasDefaultValue, $defaultValue, $visibility = Compose::PRIVATE, $scope = Compose::INSTANCE, $type = null, $readOnly = false) {
         if (!strlen($name)) {
             return $this;
         }
@@ -508,6 +593,7 @@ class Compose {
         $std->visibility = $visibility;
         $std->scope = $scope;
         $std->type = $type;
+        $std->readOnly = $readOnly;
         $this->properties[$name] = $std;
         return $this;
     }
@@ -518,7 +604,7 @@ class Compose {
      * @return stdClass[]
      */
     public function getProperties($name = null) {
-        if ($name) {
+        if (strlen($name)) {
             if (array_key_exists($name, $this->properties)) {
                 return [$this->properties[$name]];
             }
@@ -528,7 +614,7 @@ class Compose {
     }
 
     /**
-     * Removes indicated property from the composed class
+     * Removes indicated property from the composed class/trait
      * @param string $name
      * @return Pajarotin\Compose\Compose
      */
@@ -543,7 +629,7 @@ class Compose {
     }
 
     /**
-     * Adds a method to the composed class
+     * Adds a method to the composed class/trait
      * @param string $name In the PHP way, method names are case insensitive
      * @param string | Closure $value
      *  If $value IS A STRING shouldn't include function name. For example: 
@@ -564,16 +650,13 @@ class Compose {
      * @return Pajarotin\Compose\Compose
      */
     public function addMethod($name, $value, $visibility = Compose::PRIVATE, $scope = Compose::INSTANCE, $overriding = Compose::OVERRIDABLE, $returnsReference = false) {
+        if (!strlen($name)) {
+            return $this;
+        }
         if (is_a($value, 'Closure')) {
             $method = new \ReflectionFunction($value);
             $code = static::readMethod($method);
-            $value = static::extractYummy($code);
-        }
-        if ($overriding == static::ABSTRACT) {
-            $pos = strpos($value, '{');
-            if ($pos !== false) {
-                $value = trim(substr($value, 0, $pos));
-            }
+            $value = static::extractYummy($code, $overriding & static::ABSTRACT);
         }
         $std = new \stdClass();
         $std->name = $name;
@@ -593,7 +676,7 @@ class Compose {
      * @return stdClass[]
      */
     public function getMethods($name = null) {
-        if ($name) {
+        if (strlen($name)) {
             if (array_key_exists($name, $this->methods)) {
                 return [$this->methods[$name]];
             }
@@ -603,7 +686,7 @@ class Compose {
     }
 
     /**
-     * Removes indicated method from the composed class
+     * Removes indicated method from the composed class/trait
      * @param string $name In the PHP way, method names are case insensitive
      * @return Pajarotin\Compose\Compose
      */
@@ -620,22 +703,23 @@ class Compose {
 
     /**
      * Copies:
-     * - interfaces
-     * - traits
-     * - constants
+     * - interfaces (doesn't apply to traits)
+     * - traits (doesn't apply to traits)
+     * - constants (doesn't apply to traits)
      * - properties
      * - methods
-     * From the class indicated in the arguments to the composed class
+     * From the class / trait indicated in the arguments to the composed class/trait
      * Something similiar to the the javascript operation: Object.assign({}, a);
      * But with classes, NO with objects
-     * @param string $className
+     * @param string $className can also be a trait name
      * @param string $namespace
      * @return Pajarotin\Compose\Compose
      */
     public function fuseClass($className, $namespace = null) {
         $reflection = static::getClassReflection($className, $namespace);
         // $extension = $reflection->getExtension();
-        if ($interfaces = $reflection->getInterfaces()) {
+        if ($this->type === static::TYPE_CLASS 
+            && ($interfaces = $reflection->getInterfaces())) {
             foreach($interfaces as $interface) {
                 if (!in_array($interface->name, $this->interfaces)) {
                     $this->interfaces[] = $interface->name;
@@ -643,7 +727,8 @@ class Compose {
             }
         }
 
-        if ($traits = $reflection->getTraits()) {
+        if ($this->type === static::TYPE_CLASS 
+            && ($traits = $reflection->getTraits())) {
             foreach($traits as $trait) {
                 if (!in_array($trait->name, $this->traits)) {
                     $this->traits[] = $trait->name;
@@ -651,17 +736,20 @@ class Compose {
             }
         }
 
-        if ($constants = $reflection->getConstants(\ReflectionClassConstant::IS_PRIVATE)) {
+        if ($this->type === static::TYPE_CLASS 
+            && ($constants = $reflection->getConstants(\ReflectionClassConstant::IS_PRIVATE))) {
             foreach($constants as $name => $value) {
                 $this->addConstant($name, $value, static::PRIVATE);
             }
         }
-        if ($constants = $reflection->getConstants(\ReflectionClassConstant::IS_PROTECTED)) {
+        if ($this->type === static::TYPE_CLASS 
+            &&  ($constants = $reflection->getConstants(\ReflectionClassConstant::IS_PROTECTED))) {
             foreach($constants as $name => $value) {
                 $this->addConstant($name, $value, static::PROTECTED);
             }
         }
-        if ($constants = $reflection->getConstants(\ReflectionClassConstant::IS_PUBLIC)) {
+        if ($this->type === static::TYPE_CLASS 
+            && ($constants = $reflection->getConstants(\ReflectionClassConstant::IS_PUBLIC))) {
             foreach($constants as $name => $value) {
                 $this->addConstant($name, $value, static::PUBLIC);
             }
@@ -689,33 +777,36 @@ class Compose {
      * @return Pajarotin\Compose\Compose
      */
     public function fuseClassConstant($className, $name, $namespace = null) {
+        if ($this->type === static::TYPE_TRAIT) {
+            return $this;
+        }
         $reflection = static::getClassReflection($className, $namespace);
         $fused = false;
         if (!$fused && ($constants = $reflection->getConstants(\ReflectionClassConstant::IS_PRIVATE))) {
             if (array_key_exists($name, $constants)) {
                 $this->addConstant($name, $constants[$name], static::PRIVATE);
-                $fused =true;
+                $fused = true;
             }
         }
         if (!$fused && ($constants = $reflection->getConstants(\ReflectionClassConstant::IS_PROTECTED))) {
             if (array_key_exists($name, $constants)) {
                 $this->addConstant($name, $constants[$name], static::PROTECTED);
-                $fused =true;
+                $fused = true;
             }
         }
         if (!$fused && ($constants = $reflection->getConstants(\ReflectionClassConstant::IS_PUBLIC))) {
             if (array_key_exists($name, $constants)) {
                 $this->addConstant($name, $constants[$name], static::PUBLIC);
-                $fused =true;
+                $fused = true;
             }
         }
         return $this;
     }
 
     /**
-     * Copies constant from donor class indicated in the arguments, to the composed class
-     * @param string $className
-     * @param string $name constant name in donor class
+     * Copies property from donor class/trait indicated in the arguments, to the composed class/trait
+     * @param string $className can also be a trait name
+     * @param string $name property name in donor class/trait
      * @param string $namespace
      * @return Pajarotin\Compose\Compose
      */
@@ -732,9 +823,9 @@ class Compose {
     }
 
     /**
-     * Copies method from donor class indicated in the arguments, to the composed class
-     * @param string $className
-     * @param string $name constant name in donor class
+     * Copies method from donor class/trait indicated in the arguments, to the composed class/trait
+     * @param string $className can also be a trait name
+     * @param string $name method name in donor class
      * @param string $namespace
      * @return Pajarotin\Compose\Compose
      */
@@ -780,8 +871,23 @@ class Compose {
     }
 
     /**
-     * Registers current composed class for compilation
-     * Composed class will be compiled, when required by the php autoload system
+     * Retrieves generated source code for the indicated class/trait
+     * Does not trigger deferred compilation/build
+     * @param $className can also be a trait name
+     * @param $namespace
+     * @return string
+     */
+    public static function getComposedClassSource($className, $namespace) {
+        $fullName = static::normalize($className, $namespace);
+        if (!array_key_exists($fullName, static::$compiledCache)) {
+            return null;
+        }
+        return implode(PHP_EOL, static::$compiledCache[$fullName]);
+    }
+
+    /**
+     * Registers current composed class/trait for deferred compilation
+     * Composed class/trait will be compiled, when required by the php autoload system
      */
     public function deferredCompilation() {
         $first = true;
@@ -800,9 +906,9 @@ class Compose {
     }
 
     /**
-     * signals Compose to compile the indicated $class_name
-     * Composed class must have been previously registered with deferredCompilation()
-     * @param string $class_name
+     * signals Compose to compile the indicated $class_name, can also be a trait name
+     * Composed class/trait must have been previously registered with deferredCompilation()
+     * @param string $class_name can also be a trait name
      * @return bool
      */
     public static function signalCompilation($class_name) {
@@ -819,8 +925,8 @@ class Compose {
     }
 
     /**
-     * Registers the build code contained in the Closure passed as $build
-     * Composed class will be built, when required by the php autoload system
+     * Registers the build code contained in the Closure passed as $build for deferred build
+     * Composed class/trait will be built, when required by the php autoload system
      * Example:
      * $compose = new Compose('ComposedClass');
      * $compose->setNamespace('Pajarotin);
@@ -828,7 +934,7 @@ class Compose {
      *     $compose->fuseClass('DonorClassA', 'Pajarotin');
      * });
      * 
-     * @param string $class_name
+     * @param string $class_name can also be a trait name
      * @return bool
      */
     public function deferredBuild($build) {
@@ -851,9 +957,9 @@ class Compose {
     }
 
     /**
-     * signals Compose to build the indicated $class_name
-     * Composed class build code must have been previously registered with deferredBuild()
-     * @param string $class_name
+     * signals Compose to build the indicated $class_name, can also be a trait name
+     * Composed class/trait build code must have been previously registered with deferredBuild()
+     * @param string $class_name can also be a trait name
      * @return bool
      */
     public static function signalBuild($class_name) {
@@ -871,20 +977,7 @@ class Compose {
     }
 
     /**
-     * Setups in the composed class the indicated constant
-     * @param array $name
-     * @param mixed $value
-     * @param Compose::PUBLIC|Compose::PROTECTED|Compose::PRIVATE $visibility
-     */
-    protected function fuseConstant($name, $value, $visibility) {
-        if (!$name) {
-            return;
-        }
-        $this->addConstant($name, $value, $visibility);
-    }
-
-    /**
-     * Setups in the composed class the indicated property
+     * Setups in the composed class/trait the indicated property
      * @param ReflectionProperty[] $property
      */
     protected function fuseProperty($property) {
@@ -918,12 +1011,17 @@ class Compose {
         if (method_exists($property, 'hasType') && $property->hasType()) {
             $type = $property->getType()-> __toString();
         }
+
+        $readOnly = false;
+        if (method_exists($property, 'isReadOnly') && $property->isReadOnly()) {
+            $readOnly = true;
+        }
         
-        $this->addProperty($name, $hasDefaultValue, $defaultValue, $visibility, $scope, $type);
+        $this->addProperty($name, $hasDefaultValue, $defaultValue, $visibility, $scope, $type, $readOnly);
     }
 
     /**
-     * Setups in the composed class the indicated method
+     * Setups in the composed class/trait the indicated method
      * @param ReflectionMethod $method
      */
     protected function fuseMethod($method) {
@@ -932,7 +1030,7 @@ class Compose {
         }
         $name = $method->name;
         $code = static::readMethod($method);
-        $value = static::extractYummy($code);
+        $value = static::extractYummy($code, $method->isAbstract());
         
         $visibility = static::PRIVATE;
         if ($method->isPrivate()) {
@@ -997,11 +1095,21 @@ class Compose {
      * }
      * 
      * @param string $code
+     * @param string $isAbstract
      * @return string
      */
-    protected static function extractYummy($code) {
+    protected static function extractYummy($code, $isAbstract = false) {
         $start = strpos($code, '(');
-        $end = strrpos($code, '}');
+        $end = false;
+        if ($isAbstract) {
+            $end = strpos($code, '{');
+            if ($end !== false) {   // Discard function body
+                $code = substr($code, 0, $end);
+            }
+            $end = strrpos($code, ')');
+        } else {
+            $end = strrpos($code, '}');
+        }
         return substr($code, $start, $end - $start + 1);        
     }
 
@@ -1026,7 +1134,7 @@ class Compose {
     }
 
     /**
-     * Builds the source code for the composed class
+     * Builds the source code for the composed class/trait
      * @return string
      */
     protected function code() {
@@ -1038,26 +1146,38 @@ class Compose {
         if ($this->header) {
             $class .= $this->header . PHP_EOL . PHP_EOL;
         }
+        
         $sep = '';
-        if ($this->final) {
+        if ($this->final && $this->type === static::TYPE_CLASS) {
             $class .= $sep . 'final';
             $sep = ' ';
         }
-        if ($this->abstract) {
+        if ($this->readOnly && $this->type === static::TYPE_CLASS) {
+            $class .= $sep . 'readonly';
+            $sep = ' ';
+        }
+        if ($this->abstract && $this->type === static::TYPE_CLASS) {
             $class .= $sep . 'abstract';
             $sep = ' ';
         }
-        $class .= $sep . 'class ' . $this->className;
-        if ($this->extends) {
+
+        if ($this->type === static::TYPE_CLASS) {
+            $class .= $sep . 'class ' . $this->className;
+        } else if ($this->type === static::TYPE_TRAIT) {
+            $class .= $sep . 'trait ' . $this->className;
+        }
+        if ($this->extends && $this->type === static::TYPE_CLASS) {
             $cleaned = $this->cleanCurrentNamespace($this->extends);
             $class .= ' extends ' . $cleaned;
         }
 
-        $sep = PHP_EOL . "\timplements ";
-        foreach($this->interfaces as $interface) {
-            $cleaned = $this->cleanCurrentNamespace($interface);
-            $class .= $sep . $cleaned;
-            $sep = ', ' . PHP_EOL . "\t";
+        if ($this->type === static::TYPE_CLASS) {
+            $sep = PHP_EOL . "\timplements ";
+            foreach($this->interfaces as $interface) {
+                $cleaned = $this->cleanCurrentNamespace($interface);
+                $class .= $sep . $cleaned;
+                $sep = ', ' . PHP_EOL . "\t";
+            }
         }
 
         $class .= ' {' . PHP_EOL;
@@ -1071,24 +1191,28 @@ class Compose {
             $class .= ';' . PHP_EOL . PHP_EOL;
         }
 
-        foreach($this->constants as $constant) {
-            $visibility = static::visibilityToString($constant->visibility);
-            $value = static::valueToString($constant->value);
-            $class .= "\t" 
-                    . $visibility
-                    .' const '
-                    . $constant->name . ' = ' . $value . ';' . PHP_EOL;
+        if ($this->type === static::TYPE_CLASS) {
+            foreach($this->constants as $constant) {
+                $visibility = static::visibilityToString($constant->visibility);
+                $value = static::valueToString($constant->value);
+                $class .= "\t" 
+                        . $visibility
+                        .' const '
+                        . $constant->name . ' = ' . $value . ';' . PHP_EOL;
+            }
         }
 
         foreach($this->properties as $property) {
             $visibility = static::visibilityToString($property->visibility);
             $scope = static::scopeToString($property->scope);
             $type = $property->type;
+            $readOnly = $property->readOnly;
             $hasDefaultValue = $property->hasDefaultValue;
             $defaultValue = static::valueToString($property->defaultValue);
             $class .= "\t" 
                     . $visibility
                     . ($scope ? ' ' . $scope : '')
+                    . ($readOnly ? ' readonly' : '')
                     . ($type ? ' ' . $type : '')
                     . ' $' . $property->name
                     . ($hasDefaultValue ? ' = ' . $defaultValue : '')
@@ -1116,6 +1240,9 @@ class Compose {
                 $sep = ' ';
             }
             $class .= $sep . 'function ' . ($method->returnsReference ? '&' : '') . $method->name . $method->value;
+            if ($method->overriding & static::ABSTRACT) {
+                $class .= ';';    
+            }
             $class .= PHP_EOL;
         }
 
