@@ -1105,6 +1105,3 @@ METHOD;
         $this->assertEquals(true, is_object($property));
     }
 }
-
-$test = new TestCompose();
-$test->testAbstract();
