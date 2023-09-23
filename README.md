@@ -3,31 +3,30 @@
 ## Features
  - Flag composed class as abstract
  - Flag composed class as final
- - Set composed class namespace
+ - Set composed class/trait namespace
  - Set composed class base class
  - Add/Remove interface to composed class
- - Add/Remove trait to composed class
+ - Add/Remove trait to composed class/trait
  - Add/Remove constant to composed class
- - Add/Remove property to composed class
- - Add/Remove method to composed class
+ - Add/Remove property to composed class/trait
+ - Add/Remove method to composed class/trait
+ - Add donor class properties and methods to composed class/trait
+ - Add donor trait properties and methods to composed class/trait
  - Add donor class interfaces, traits, constants, properties and methods to composed class
  - Add donor class constant to composed class
- - Add donor class property to composed class
- - Add donor class method to composed class
- - Deferred composed class compilation (evaluation of composed code), linked to php autoload system
- - Deferred composed class build (configuration and build of composed class), linked to php autoload system
+ - Deferred composed class/trait compilation (evaluation of composed code), linked to php autoload system
+ - Deferred composed class/trait build (configuration of composed class and), linked to php autoload system
  - ¡ FULLY EXPERIMENTAL CODE !
 
 ##  "Favor composition over inheritance"
-This tool allows composing a class by code:
- - constants
- - properties
- - methods
- - traits 
- - interfaces
+This tool allows composing a class or a trait by code, with chunks of previous classes or traits
+ - constants can be added or copied from a previous class (only to a class)
+ - properties can be added or copied from a previous class or trait
+ - methods can be added or copied from a previous class or trait
+ - traits can be added or copied from a previous class
+ - interfaces can be added or copied from a previous class (only to a class)
 
-Those parts can also be extracted from previous donor classes.
-Can be used to automate changes to third parties source code, without resorting to editing it directly.
+These features can be used to automate changes to third parties source code, without resorting to editing it directly.
 
 ## License
 This software is distributed under the [MIT] license. Please read [LICENSE](https://github.com/pajarotin/compose/blob/main/LICENSE) for information on the software availability and distribution.
