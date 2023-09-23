@@ -3,7 +3,7 @@
  * @package Pajarotin\Compose
  * @author Alberto Mora Cao <gmlamora@gmail.com>
  * @copyright 2023 Alberto Mora Cao
- * @version $Revision: 0.0.2 $ 
+ * @version $Revision: 0.0.3 $ 
  * @license https://mit-license.org/ MIT
  */
 
@@ -22,6 +22,25 @@ trait donorTrait {
     private $etp = 'private trait property';
     public function ctm() {
         return $this->etp;
+    }
+}
+
+trait fullDonorTrait {
+    use donorTrait;
+    protected $dtp = 'protected trait property';
+    protected function dtm() {
+        return $this->dtp;
+    }
+}
+
+trait abstractTrait {
+    protected $abs;
+    abstract protected function getAbs($param = null);
+}
+
+class DeltaAbstract {
+    protected function getAbs($param = null) {
+        return $this->abs;
     }
 }
 
@@ -98,6 +117,7 @@ class DonorClassA implements donorInterface {
         return static::$csp;
     }
 }
+// End of: Parts used to build our Frankenstein test classes:
 
 final class TestCompose extends TestCase
 {
@@ -197,6 +217,7 @@ final class TestCompose extends TestCase
         $properties = $reflection->getProperties();
         $this->assertIsArray($properties);
         $this->assertEquals(6, count($properties));
+        $checked = 0;
         foreach($properties as $property) {
             if ($property->getName() == 'publicInstanceProperty') {
                 $this->assertEquals(true, $property->hasDefaultValue());
@@ -205,6 +226,7 @@ final class TestCompose extends TestCase
                 $this->assertEquals(false, $property->isProtected());
                 $this->assertEquals(false, $property->isPrivate());
                 $this->assertEquals(false, $property->isStatic());
+                $checked++;
             }
             if ($property->getName() == 'protectedInstanceProperty') {
                 $this->assertEquals(true, $property->hasDefaultValue());
@@ -213,6 +235,7 @@ final class TestCompose extends TestCase
                 $this->assertEquals(true, $property->isProtected());
                 $this->assertEquals(false, $property->isPrivate());
                 $this->assertEquals(false, $property->isStatic());
+                $checked++;
             }
             if ($property->getName() == 'privateInstanceProperty') {
                 $this->assertEquals(true, $property->hasDefaultValue());
@@ -221,6 +244,7 @@ final class TestCompose extends TestCase
                 $this->assertEquals(false, $property->isProtected());
                 $this->assertEquals(true, $property->isPrivate());
                 $this->assertEquals(false, $property->isStatic());
+                $checked++;
             }
             if ($property->getName() == 'publicStaticProperty') {
                 $this->assertEquals(true, $property->hasDefaultValue());
@@ -229,6 +253,7 @@ final class TestCompose extends TestCase
                 $this->assertEquals(false, $property->isProtected());
                 $this->assertEquals(false, $property->isPrivate());
                 $this->assertEquals(true, $property->isStatic());
+                $checked++;
             }
             if ($property->getName() == 'protectedStaticProperty') {
                 $this->assertEquals(true, $property->hasDefaultValue());
@@ -237,6 +262,7 @@ final class TestCompose extends TestCase
                 $this->assertEquals(true, $property->isProtected());
                 $this->assertEquals(false, $property->isPrivate());
                 $this->assertEquals(true, $property->isStatic());
+                $checked++;
             }
             if ($property->getName() == 'privateStaticProperty') {
                 $this->assertEquals(true, $property->hasDefaultValue());
@@ -245,8 +271,10 @@ final class TestCompose extends TestCase
                 $this->assertEquals(false, $property->isProtected());
                 $this->assertEquals(true, $property->isPrivate());
                 $this->assertEquals(true, $property->isStatic());
+                $checked++;
             }
         }
+        $this->assertEquals(6, $checked);
     }
 
     public function testClassMethod() {
@@ -301,44 +329,52 @@ METHOD;
         $methods = $reflection->getMethods();
         $this->assertIsArray($methods);
         $this->assertEquals(6, count($methods));
+        $checked = 0;
         foreach($methods as $method) {
             if ($method->getName() == 'publicInstanceMethod') {
                 $this->assertEquals(true, $method->isPublic());
                 $this->assertEquals(false, $method->isProtected());
                 $this->assertEquals(false, $method->isPrivate());
                 $this->assertEquals(false, $method->isStatic());
+                $checked++;
             }
             if ($method->getName() == 'protectedInstanceMethod') {
                 $this->assertEquals(false, $method->isPublic());
                 $this->assertEquals(true, $method->isProtected());
                 $this->assertEquals(false, $method->isPrivate());
                 $this->assertEquals(false, $method->isStatic());
+                $checked++;
             }
             if ($method->getName() == 'privateInstanceMethod') {
                 $this->assertEquals(false, $method->isPublic());
                 $this->assertEquals(false, $method->isProtected());
                 $this->assertEquals(true, $method->isPrivate());
                 $this->assertEquals(false, $method->isStatic());
+                $checked++;
             }
             if ($method->getName() == 'publicStaticMethod') {
                 $this->assertEquals(true, $method->isPublic());
                 $this->assertEquals(false, $method->isProtected());
                 $this->assertEquals(false, $method->isPrivate());
                 $this->assertEquals(true, $method->isStatic());
+                $checked++;
             }
             if ($method->getName() == 'protectedStaticMethod') {
                 $this->assertEquals(false, $method->isPublic());
                 $this->assertEquals(true, $method->isProtected());
                 $this->assertEquals(false, $method->isPrivate());
                 $this->assertEquals(true, $method->isStatic());
+                $checked++;
             }
             if ($method->getName() == 'privateStaticMethod') {
                 $this->assertEquals(false, $method->isPublic());
                 $this->assertEquals(false, $method->isProtected());
                 $this->assertEquals(true, $method->isPrivate());
                 $this->assertEquals(true, $method->isStatic());
+                $checked++;
             }
         }
+        $this->assertEquals(6, $checked);
     }
 
     public function testFuseClassConstant() {
@@ -383,6 +419,7 @@ METHOD;
         $properties = $reflection->getProperties();
         $this->assertIsArray($properties);
         $this->assertEquals(6, count($properties));
+        $checked = 0;
         foreach($properties as $property) {
             if ($property->getName() == 'cp') {
                 $this->assertEquals(true, $property->hasDefaultValue());
@@ -391,6 +428,7 @@ METHOD;
                 $this->assertEquals(false, $property->isProtected());
                 $this->assertEquals(false, $property->isPrivate());
                 $this->assertEquals(false, $property->isStatic());
+                $checked++;
             }
             if ($property->getName() == 'dp') {
                 $this->assertEquals(true, $property->hasDefaultValue());
@@ -399,6 +437,7 @@ METHOD;
                 $this->assertEquals(true, $property->isProtected());
                 $this->assertEquals(false, $property->isPrivate());
                 $this->assertEquals(false, $property->isStatic());
+                $checked++;
             }
             if ($property->getName() == 'ep') {
                 $this->assertEquals(true, $property->hasDefaultValue());
@@ -407,6 +446,7 @@ METHOD;
                 $this->assertEquals(false, $property->isProtected());
                 $this->assertEquals(true, $property->isPrivate());
                 $this->assertEquals(false, $property->isStatic());
+                $checked++;
             }
             if ($property->getName() == 'csp') {
                 $this->assertEquals(true, $property->hasDefaultValue());
@@ -415,6 +455,7 @@ METHOD;
                 $this->assertEquals(false, $property->isProtected());
                 $this->assertEquals(false, $property->isPrivate());
                 $this->assertEquals(true, $property->isStatic());
+                $checked++;
             }
             if ($property->getName() == 'dsp') {
                 $this->assertEquals(true, $property->hasDefaultValue());
@@ -423,6 +464,7 @@ METHOD;
                 $this->assertEquals(true, $property->isProtected());
                 $this->assertEquals(false, $property->isPrivate());
                 $this->assertEquals(true, $property->isStatic());
+                $checked++;
             }
             if ($property->getName() == 'esp') {
                 $this->assertEquals(true, $property->hasDefaultValue());
@@ -431,8 +473,10 @@ METHOD;
                 $this->assertEquals(false, $property->isProtected());
                 $this->assertEquals(true, $property->isPrivate());
                 $this->assertEquals(true, $property->isStatic());
+                $checked++;
             }
         }
+        $this->assertEquals(6, $checked);
     }
 
     public function testFuseClassMethod() {
@@ -470,6 +514,7 @@ METHOD;
         $methods = $reflection->getMethods();
         $this->assertIsArray($methods);
         $this->assertEquals(12, count($methods));
+        $checked = 0;
         foreach($methods as $method) {
             if ($method->getName() == 'cm') {
                 $this->assertEquals(true, $method->isPublic());
@@ -477,6 +522,7 @@ METHOD;
                 $this->assertEquals(false, $method->isPrivate());
                 $this->assertEquals(false, $method->isStatic());
                 $this->assertEquals(false, $method->returnsReference());
+                $checked++;
             }
             if ($method->getName() == 'dm') {
                 $this->assertEquals(false, $method->isPublic());
@@ -484,6 +530,7 @@ METHOD;
                 $this->assertEquals(false, $method->isPrivate());
                 $this->assertEquals(false, $method->isStatic());
                 $this->assertEquals(false, $method->returnsReference());
+                $checked++;
             }
             if ($method->getName() == 'em') {
                 $this->assertEquals(false, $method->isPublic());
@@ -491,6 +538,7 @@ METHOD;
                 $this->assertEquals(true, $method->isPrivate());
                 $this->assertEquals(false, $method->isStatic());
                 $this->assertEquals(false, $method->returnsReference());
+                $checked++;
             }
             if ($method->getName() == 'csm') {
                 $this->assertEquals(true, $method->isPublic());
@@ -498,6 +546,7 @@ METHOD;
                 $this->assertEquals(false, $method->isPrivate());
                 $this->assertEquals(true, $method->isStatic());
                 $this->assertEquals(false, $method->returnsReference());
+                $checked++;
             }
             if ($method->getName() == 'dsm') {
                 $this->assertEquals(false, $method->isPublic());
@@ -505,6 +554,7 @@ METHOD;
                 $this->assertEquals(false, $method->isPrivate());
                 $this->assertEquals(true, $method->isStatic());
                 $this->assertEquals(false, $method->returnsReference());
+                $checked++;
             }
             if ($method->getName() == 'esm') {
                 $this->assertEquals(false, $method->isPublic());
@@ -512,6 +562,7 @@ METHOD;
                 $this->assertEquals(true, $method->isPrivate());
                 $this->assertEquals(true, $method->isStatic());
                 $this->assertEquals(false, $method->returnsReference());
+                $checked++;
             }
             if ($method->getName() == 'rcm') {
                 $this->assertEquals(true, $method->isPublic());
@@ -519,6 +570,7 @@ METHOD;
                 $this->assertEquals(false, $method->isPrivate());
                 $this->assertEquals(false, $method->isStatic());
                 $this->assertEquals(true, $method->returnsReference());
+                $checked++;
             }
             if ($method->getName() == 'rdm') {
                 $this->assertEquals(false, $method->isPublic());
@@ -526,6 +578,7 @@ METHOD;
                 $this->assertEquals(false, $method->isPrivate());
                 $this->assertEquals(false, $method->isStatic());
                 $this->assertEquals(true, $method->returnsReference());
+                $checked++;
             }
             if ($method->getName() == 'rem') {
                 $this->assertEquals(false, $method->isPublic());
@@ -533,6 +586,7 @@ METHOD;
                 $this->assertEquals(true, $method->isPrivate());
                 $this->assertEquals(false, $method->isStatic());
                 $this->assertEquals(true, $method->returnsReference());
+                $checked++;
             }
             if ($method->getName() == 'rcsm') {
                 $this->assertEquals(true, $method->isPublic());
@@ -540,6 +594,7 @@ METHOD;
                 $this->assertEquals(false, $method->isPrivate());
                 $this->assertEquals(true, $method->isStatic());
                 $this->assertEquals(true, $method->returnsReference());
+                $checked++;
             }
             if ($method->getName() == 'rdsm') {
                 $this->assertEquals(false, $method->isPublic());
@@ -547,6 +602,7 @@ METHOD;
                 $this->assertEquals(false, $method->isPrivate());
                 $this->assertEquals(true, $method->isStatic());
                 $this->assertEquals(true, $method->returnsReference());
+                $checked++;
             }
             if ($method->getName() == 'resm') {
                 $this->assertEquals(false, $method->isPublic());
@@ -554,8 +610,10 @@ METHOD;
                 $this->assertEquals(true, $method->isPrivate());
                 $this->assertEquals(true, $method->isStatic());
                 $this->assertEquals(true, $method->returnsReference());
+                $checked++;
             }
         }
+        $this->assertEquals(12, $checked);
     }
 
     public function testFuseClass() {
@@ -601,6 +659,7 @@ METHOD;
         $properties = $reflection->getProperties();
         $this->assertIsArray($properties);
         $this->assertEquals(7, count($properties)); // Don't forget trait
+        $checked = 0;
         foreach($properties as $property) {
             if ($property->getName() == 'cp') {
                 $this->assertEquals(true, $property->hasDefaultValue());
@@ -609,6 +668,7 @@ METHOD;
                 $this->assertEquals(false, $property->isProtected());
                 $this->assertEquals(false, $property->isPrivate());
                 $this->assertEquals(false, $property->isStatic());
+                $checked++;
             }
             if ($property->getName() == 'dp') {
                 $this->assertEquals(true, $property->hasDefaultValue());
@@ -617,6 +677,7 @@ METHOD;
                 $this->assertEquals(true, $property->isProtected());
                 $this->assertEquals(false, $property->isPrivate());
                 $this->assertEquals(false, $property->isStatic());
+                $checked++;
             }
             if ($property->getName() == 'ep') {
                 $this->assertEquals(true, $property->hasDefaultValue());
@@ -625,6 +686,7 @@ METHOD;
                 $this->assertEquals(false, $property->isProtected());
                 $this->assertEquals(true, $property->isPrivate());
                 $this->assertEquals(false, $property->isStatic());
+                $checked++;
             }
             if ($property->getName() == 'csp') {
                 $this->assertEquals(true, $property->hasDefaultValue());
@@ -633,6 +695,7 @@ METHOD;
                 $this->assertEquals(false, $property->isProtected());
                 $this->assertEquals(false, $property->isPrivate());
                 $this->assertEquals(true, $property->isStatic());
+                $checked++;
             }
             if ($property->getName() == 'dsp') {
                 $this->assertEquals(true, $property->hasDefaultValue());
@@ -641,6 +704,7 @@ METHOD;
                 $this->assertEquals(true, $property->isProtected());
                 $this->assertEquals(false, $property->isPrivate());
                 $this->assertEquals(true, $property->isStatic());
+                $checked++;
             }
             if ($property->getName() == 'esp') {
                 $this->assertEquals(true, $property->hasDefaultValue());
@@ -649,12 +713,25 @@ METHOD;
                 $this->assertEquals(false, $property->isProtected());
                 $this->assertEquals(true, $property->isPrivate());
                 $this->assertEquals(true, $property->isStatic());
+                $checked++;
+            }
+
+            if ($property->getName() == 'etp') {
+                $this->assertEquals(true, $property->hasDefaultValue());
+                $this->assertEquals('private trait property', $property->getDefaultValue());
+                $this->assertEquals(false, $property->isPublic());
+                $this->assertEquals(false, $property->isProtected());
+                $this->assertEquals(true, $property->isPrivate());
+                $this->assertEquals(false, $property->isStatic());
+                $checked++;
             }
         }
+        $this->assertEquals(7, $checked);
 
         $methods = $reflection->getMethods();
         $this->assertIsArray($methods);
         $this->assertEquals(14, count($methods));   // Including Trait an Constructor
+        $checked = 0;
         foreach($methods as $method) {
             if ($method->getName() == 'cm') {
                 $this->assertEquals(true, $method->isPublic());
@@ -662,6 +739,7 @@ METHOD;
                 $this->assertEquals(false, $method->isPrivate());
                 $this->assertEquals(false, $method->isStatic());
                 $this->assertEquals(false, $method->returnsReference());
+                $checked++;
             }
             if ($method->getName() == 'dm') {
                 $this->assertEquals(false, $method->isPublic());
@@ -669,6 +747,7 @@ METHOD;
                 $this->assertEquals(false, $method->isPrivate());
                 $this->assertEquals(false, $method->isStatic());
                 $this->assertEquals(false, $method->returnsReference());
+                $checked++;
             }
             if ($method->getName() == 'em') {
                 $this->assertEquals(false, $method->isPublic());
@@ -676,6 +755,7 @@ METHOD;
                 $this->assertEquals(true, $method->isPrivate());
                 $this->assertEquals(false, $method->isStatic());
                 $this->assertEquals(false, $method->returnsReference());
+                $checked++;
             }
             if ($method->getName() == 'csm') {
                 $this->assertEquals(true, $method->isPublic());
@@ -683,6 +763,7 @@ METHOD;
                 $this->assertEquals(false, $method->isPrivate());
                 $this->assertEquals(true, $method->isStatic());
                 $this->assertEquals(false, $method->returnsReference());
+                $checked++;
             }
             if ($method->getName() == 'dsm') {
                 $this->assertEquals(false, $method->isPublic());
@@ -690,6 +771,7 @@ METHOD;
                 $this->assertEquals(false, $method->isPrivate());
                 $this->assertEquals(true, $method->isStatic());
                 $this->assertEquals(false, $method->returnsReference());
+                $checked++;
             }
             if ($method->getName() == 'esm') {
                 $this->assertEquals(false, $method->isPublic());
@@ -697,6 +779,7 @@ METHOD;
                 $this->assertEquals(true, $method->isPrivate());
                 $this->assertEquals(true, $method->isStatic());
                 $this->assertEquals(false, $method->returnsReference());
+                $checked++;
             }
             if ($method->getName() == 'rcm') {
                 $this->assertEquals(true, $method->isPublic());
@@ -704,6 +787,7 @@ METHOD;
                 $this->assertEquals(false, $method->isPrivate());
                 $this->assertEquals(false, $method->isStatic());
                 $this->assertEquals(true, $method->returnsReference());
+                $checked++;
             }
             if ($method->getName() == 'rdm') {
                 $this->assertEquals(false, $method->isPublic());
@@ -711,6 +795,7 @@ METHOD;
                 $this->assertEquals(false, $method->isPrivate());
                 $this->assertEquals(false, $method->isStatic());
                 $this->assertEquals(true, $method->returnsReference());
+                $checked++;
             }
             if ($method->getName() == 'rem') {
                 $this->assertEquals(false, $method->isPublic());
@@ -718,6 +803,7 @@ METHOD;
                 $this->assertEquals(true, $method->isPrivate());
                 $this->assertEquals(false, $method->isStatic());
                 $this->assertEquals(true, $method->returnsReference());
+                $checked++;
             }
             if ($method->getName() == 'rcsm') {
                 $this->assertEquals(true, $method->isPublic());
@@ -725,6 +811,7 @@ METHOD;
                 $this->assertEquals(false, $method->isPrivate());
                 $this->assertEquals(true, $method->isStatic());
                 $this->assertEquals(true, $method->returnsReference());
+                $checked++;
             }
             if ($method->getName() == 'rdsm') {
                 $this->assertEquals(false, $method->isPublic());
@@ -732,6 +819,7 @@ METHOD;
                 $this->assertEquals(false, $method->isPrivate());
                 $this->assertEquals(true, $method->isStatic());
                 $this->assertEquals(true, $method->returnsReference());
+                $checked++;
             }
             if ($method->getName() == 'resm') {
                 $this->assertEquals(false, $method->isPublic());
@@ -739,8 +827,19 @@ METHOD;
                 $this->assertEquals(true, $method->isPrivate());
                 $this->assertEquals(true, $method->isStatic());
                 $this->assertEquals(true, $method->returnsReference());
+                $checked++;
+            }
+            
+            if ($method->getName() == 'ctm') {
+                $this->assertEquals(true, $method->isPublic());
+                $this->assertEquals(false, $method->isProtected());
+                $this->assertEquals(false, $method->isPrivate());
+                $this->assertEquals(false, $method->isStatic());
+                $this->assertEquals(false, $method->returnsReference());
+                $checked++;
             }
         }
+        $this->assertEquals(13, $checked);
     }
 
     public function testClassDeferredCompilation() {
@@ -837,4 +936,175 @@ METHOD;
         $final = new TestChainedComposition();
         $this->assertEquals(60, $final->cm());
     }
+
+    public function testStaticClassCreation() {
+        $className = 'TestStaticClassCreation';
+        $namespace = 'Pajarotin\\Test\\Compose';
+        $compose = Compose::newClass($className, $namespace);
+        $compose->compile();
+
+        $exists = class_exists($namespace . '\\' . $className, false);
+        $this->assertEquals(true, $exists);
+    }
+
+    public function testStaticTraitCreation() {
+        $traitName = 'testStaticTraitCreation';
+        $namespace = 'Pajarotin\\Test\\Compose';
+        $compose = Compose::newTrait($traitName, $namespace);
+        $compose->fuseClass('fullDonorTrait', $namespace);
+        $compose->compile();
+
+        $exists = trait_exists($namespace . '\\' . $traitName, false);
+        $this->assertEquals(true, $exists);
+
+        $reflection = new \ReflectionClass($namespace . '\\' . $traitName);
+
+        $traits = $reflection->getTraits();
+        $this->assertIsArray($traits);
+        $this->assertEquals(count($traits), 0);
+
+        $properties = $reflection->getProperties();
+        $this->assertIsArray($properties);
+        $this->assertEquals(2, count($properties)); // Don't forget trait
+        $checked = 0;
+        foreach($properties as $property) {
+            if ($property->getName() == 'etp') {
+                $this->assertEquals(true, $property->hasDefaultValue());
+                $this->assertEquals('private trait property', $property->getDefaultValue());
+                $this->assertEquals(false, $property->isPublic());
+                $this->assertEquals(false, $property->isProtected());
+                $this->assertEquals(true, $property->isPrivate());
+                $this->assertEquals(false, $property->isStatic());
+                $checked++;
+            }
+            if ($property->getName() == 'dtp') {
+                $this->assertEquals(true, $property->hasDefaultValue());
+                $this->assertEquals('protected trait property', $property->getDefaultValue());
+                $this->assertEquals(false, $property->isPublic());
+                $this->assertEquals(true, $property->isProtected());
+                $this->assertEquals(false, $property->isPrivate());
+                $this->assertEquals(false, $property->isStatic());
+                $checked++;
+            }
+        }
+        $this->assertEquals(2, $checked);
+
+        $methods = $reflection->getMethods();
+        $this->assertIsArray($methods);
+        $this->assertEquals(2, count($methods));
+        $checked = 0;
+        foreach($methods as $method) {
+            if ($method->getName() == 'ctm') {
+                $this->assertEquals(true, $method->isPublic());
+                $this->assertEquals(false, $method->isProtected());
+                $this->assertEquals(false, $method->isPrivate());
+                $this->assertEquals(false, $method->isStatic());
+                $checked++;
+            }
+            if ($method->getName() == 'dtm') {
+                $this->assertEquals(false, $method->isPublic());
+                $this->assertEquals(true, $method->isProtected());
+                $this->assertEquals(false, $method->isPrivate());
+                $this->assertEquals(false, $method->isStatic());
+                $checked++;
+            }
+        }
+        $this->assertEquals(2, $checked);
+    }
+
+    public function testAbstractClassCreation() {
+        $className = 'TestAbstractClassCreation';
+        $namespace = 'Pajarotin\\Test\\Compose';
+        $compose = Compose::newClass($className, $namespace);
+        $compose->isAbstract(true);
+        $compose->compile();
+
+        $exists = class_exists($namespace . '\\' . $className, false);
+        $this->assertEquals(true, $exists);
+
+        $reflection = new \ReflectionClass($namespace . '\\' . $className);
+        $this->assertEquals(true, $reflection->isAbstract());
+    }
+
+    public function testFinalClassCreation() {
+        $className = 'TestFinalClassCreation';
+        $namespace = 'Pajarotin\\Test\\Compose';
+        $compose = Compose::newClass($className, $namespace);
+        $compose->isFinal(true);
+        $compose->compile();
+
+        $exists = class_exists($namespace . '\\' . $className, false);
+        $this->assertEquals(true, $exists);
+
+        $reflection = new \ReflectionClass($namespace . '\\' . $className);
+        $this->assertEquals(true, $reflection->isFinal());
+    }
+
+    public function testReadOnlyClassCreation() {
+        $className = 'TestReadOnlyClassCreation';
+        $namespace = 'Pajarotin\\Test\\Compose';
+        $compose = Compose::newClass($className, $namespace);
+        $isReadOnly = false;
+        if (version_compare(PHP_VERSION, '8.1') >= 0) {
+            $isReadOnly = true;
+        }        
+        if (version_compare(PHP_VERSION, '7.4') >= 0) {
+            $compose->addProperty('rop', false, null, $visibility = Compose::PRIVATE, $scope = Compose::INSTANCE, $type = 'string', $isReadOnly);
+        }
+        if (version_compare(PHP_VERSION, '8.2') >= 0) {
+            $compose->isReadOnly(true);
+        }
+        $compose->compile();
+
+        $exists = class_exists($namespace . '\\' . $className, false);
+        $this->assertEquals(true, $exists);
+
+        $reflection = new \ReflectionClass($namespace . '\\' . $className);
+        if (method_exists($reflection, 'isReadOnly')) {
+            $this->assertEquals(true, $reflection->isReadOnly());
+        }
+        
+        if (version_compare(PHP_VERSION, '7.4') >= 0) {        
+            $property = $reflection->getProperty('rop');
+            $this->assertEquals(true, is_object($property));
+
+            if (method_exists($property, 'isReadOnly')) {
+                $this->assertEquals(true, $property->isReadOnly());
+            }
+        }
+    }
+
+    public function testAbstract() {
+        $className = 'BaseAbstract';
+        $namespace = 'Pajarotin\\Test\\Compose';
+        $compose = Compose::newClass($className, $namespace);
+        $compose->fuseClass('abstractTrait', $namespace);
+        $compose->isAbstract(true);
+        $compose->compile();
+
+        $exists = class_exists($namespace . '\\' . $className, false);
+        $this->assertEquals(true, $exists);
+        $reflection = new \ReflectionClass($namespace . '\\' . $className);
+        $this->assertEquals(true, $reflection->isAbstract());
+
+        $className = 'TestAbstract';
+        $compose = Compose::newClass($className, $namespace);
+        $compose->extends('BaseAbstract', $namespace);
+        $compose->fuseClassMethod('DeltaAbstract', 'getAbs', $namespace);
+        $compose->compile();
+
+        $exists = class_exists($namespace . '\\' . $className, false);
+        $this->assertEquals(true, $exists);
+
+        $reflection = new \ReflectionClass($namespace . '\\' . $className);
+        $method = $reflection->getMethod('getAbs');
+        $this->assertEquals(true, is_object($method));
+        $this->assertEquals(false, $method->isAbstract());
+        
+        $property = $reflection->getProperty('abs');
+        $this->assertEquals(true, is_object($property));
+    }
 }
+
+$test = new TestCompose();
+$test->testAbstract();
