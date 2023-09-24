@@ -73,8 +73,10 @@ namespace Pajarotin\Compose;
  *   - addTrait($traitName, $namespace = '')
  *   - removeTrait($traitName, $namespace = '')
  *   - addConstant($name, $value, $flags = Compose::PUBLIC)
+ *   - updateConstant($name, $newName, $value = null, $flags = null)
  *   - removeConstant($name)
  *   - addProperty($name, $defaultValue, $flags = Compose::PUBLIC | Compose::INSTANCE | Compose::READ_WRITE, $type = null)
+ *   - updateProperty($name, $newName, $defaultValue = null, $flags = null, $type = null)
  *   - removeProperty($name)
  *   - addMethod($name, $value, $flags = Compose::PUBLIC | Compose::INSTANCE | Compose::OVERRIDABLE)
  *   - removeMethod($name)
@@ -600,7 +602,7 @@ class Compose {
      * if null don't change visibility
      * @return Pajarotin\Compose\Compose
      */
-    public function updateConstant($name, $newName, $value, $flags) {
+    public function updateConstant($name, $newName, $value = null, $flags = null) {
         $old = null;
         foreach($this->constants as $item) {
             if ($item->name === $name) {
@@ -739,7 +741,7 @@ class Compose {
      * @param string $type is null defaults to old one, if Compose::NO_TYPE is set old type is erased
      * @return Pajarotin\Compose\Compose
      */
-    public function updateProperty($name, $newName, $defaultValue, $flags = null, $type = null) {
+    public function updateProperty($name, $newName, $defaultValue = null, $flags = null, $type = null) {
         $old = null;
         foreach($this->properties as $item) {
             if ($item->name === $name) {
@@ -860,14 +862,19 @@ class Compose {
         if (!strlen($name)) {
             return $this;
         }
+        $closureReturnsReference = null;
+        $yummy = null;
         if (is_a($value, 'Closure')) {
             $method = new \ReflectionFunction($value);
+            $closureReturnsReference = $method->returnsReference();
             $code = static::readMethod($method);
-            $value = static::extractYummy($code, $flags & static::ABSTRACT);
+            $yummy = static::extractYummy($code, $isAbstract, $abstractPart);
+        } else {
+            $yummy = static::extractYummy($value, $isAbstract, $abstractPart);
         }
         $std = new \stdClass();
         $std->name = $name;
-        $std->value = $value;
+        $std->value = $yummy;
         $visibility =  static::filterVisibility($flags);
         if ($visibility !== null) {
             $std->visibility = $visibility;
@@ -888,19 +895,116 @@ class Compose {
         } else {
             $std->overriding = static::OVERRIDABLE;
         }
-        if ($flags & static::ABSTRACT) {
+        if (($flags & static::ABSTRACT) || $isAbstract) {
             $std->overriding |= static::ABSTRACT;
+            $std->value = $abstractPart;
         }
 
         $returnsReference = static::filterReturnsReference($flags);
         if ($returnsReference !== null) {
             $std->returnsReference = $returnsReference;
         } else {
-            $std->returnsReference = false;
+            if ($closureReturnsReference !== null) {
+                $std->returnsReference = $closureReturnsReference;
+            } else {
+                $std->returnsReference = false;
+            }
         }
 
         $lowerName = strtolower($name);
         $this->methods[$lowerName] = $std;
+        return $this;
+    }
+
+    /**
+     * Updates a method configuration
+     * @param string $name
+     * @param string $newName if null don't change name
+     * @param mixed $value if null don't change method body, unles Compose::ABSTRACT is set
+     * @param int $flags bitmap of:
+     *      Compose::PUBLIC|Compose::PROTECTED|Compose::PRIVATE if not indicated old one is mantained
+     *      Compose::INSTANCE|Compose::STATIC  if not indicated old one is mantained
+     *      Compose::ABSTRACT method is flagged as abstract
+     *      Compose::RETURNS_VALUE|Compose::RETURNS_REFERENCE if not indicated, defaults to old one, 
+     *      except if $value is a closure that returns a reference
+     * @return Pajarotin\Compose\Compose
+     */
+    public function updateMethod($name, $newName, $value = null, $flags = null) {
+        $old = null;
+        $lowerName = strtolower($name);
+        foreach($this->methods as $key => $item) {
+            if ($key === $lowerName) {
+                $old = $item;
+                break;
+            } 
+        }
+        if (!$old) {
+            return $this;
+        }
+        $update = new \stdClass();
+        if ($newName !== null) {
+            $update->name = $newName;
+        } else {
+            $update->name = $old->name;
+        }
+
+        $isAbstract = false;
+        $abstractPart = null;
+        $yummy = null;
+        $closureReturnsReference = null;
+        if ($value != null) {
+            if (is_a($value, 'Closure')) {
+                $method = new \ReflectionFunction($value);
+                $closureReturnsReference = $method->returnsReference();                
+                $code = static::readMethod($method);
+                $yummy = static::extractYummy($code, $isAbstract, $abstractPart);
+            } else {
+                $yummy = static::extractYummy($value, $isAbstract, $abstractPart);
+            }
+        } else {
+            $yummy = static::extractYummy($old->value, $isAbstract, $abstractPart);
+        }
+        $update->value = $yummy;
+
+        $visibility = static::filterVisibility($flags);
+        if ($visibility !== null) {
+            $update->visibility = $visibility;
+        } else {
+            $update->visibility = $old->visibility;
+        }
+
+        $scope = static::filterScope($flags);
+        if ($scope !== null) {
+            $update->scope = $scope;
+        } else {
+            $update->scope = $old->scope;
+        }
+
+        $overriding = static::filterOverriding($flags);
+        if ($overriding !== null) {
+            $update->overriding = $overriding;
+        } else {
+            $update->overriding = $old->overriding;
+        }
+        if ($flags & static::ABSTRACT || $isAbstract) {
+            $update->overriding |= static::ABSTRACT;
+            $update->value = $abstractPart;
+        }
+
+        $returnsReference = static::filterReturnsReference($flags);
+        if ($returnsReference !== null) {
+            $update->returnsReference = $returnsReference;
+        } else {
+            if ($closureReturnsReference !== null) {
+                $update->returnsReference = $closureReturnsReference;
+            } else {
+                $update->returnsReference = $old->returnsReference;
+            }
+        }
+
+        $this->removeMethod($name);
+        $lowerName = strtolower($update->name);
+        $this->methods[$lowerName] = $update;
         return $this;
     }
 
@@ -1266,8 +1370,11 @@ class Compose {
         $name = $method->name;
         $flags = 0;
         $code = static::readMethod($method);
-        $value = static::extractYummy($code, $method->isAbstract());
-        
+        $yummy = static::extractYummy($code, $isAbstract, $abstractPart);
+        if ($method->isAbstract() || $isAbstract) {
+            $yummy = $abstractPart;
+        }
+
         if ($method->isPrivate()) {
             $flags |= static::PRIVATE;
         } else if ($method->isProtected()) {
@@ -1282,7 +1389,7 @@ class Compose {
             $flags |= static::INSTANCE;
         }
 
-        if ($method->isAbstract()) {
+        if ($method->isAbstract() || $isAbstract) {
             $flags |= static::ABSTRACT;
         }
 
@@ -1298,7 +1405,7 @@ class Compose {
             $flags |= static::RETURNS_VALUE;
         }
     
-        $this->addMethod($name, $value, $flags);
+        $this->addMethod($name, $yummy, $flags);
     }
 
     /**
@@ -1307,8 +1414,8 @@ class Compose {
      * @param ReflectionMethod $methods
      * @return string;
      */    
-    protected static function readMethod($method) {
-        if (array_key_exists($method->class, static::$compiledCache)) {
+    protected static function readMethod($method) {        
+        if (property_exists($method, 'class') && array_key_exists($method->class, static::$compiledCache)) {
             $lines = static::$compiledCache[$method->class];
         } else {
             $filename = $method->getFileName();
@@ -1335,20 +1442,46 @@ class Compose {
      * }
      * 
      * @param string $code
-     * @param string $isAbstract
+     * @param bool &$isAbstract
+     * @param string &$abstractPart
      * @return string
      */
-    protected static function extractYummy($code, $isAbstract = false) {
+    protected static function extractYummy($code, &$isAbstract, &$abstractPart) {
+    /*
+        function &test(): void { }
+        function &test() { }
+        // Abstract:
+        function &test(): void;
+        function &test();
+        // TODO
+        $aux = fn() => $x + $y;
+    */
+        $isAbstract = false;
+        $abstractPart = null;
         $start = strpos($code, '(');
-        $end = false;
-        if ($isAbstract) {
-            $end = strpos($code, '{');
-            if ($end !== false) {   // Discard function body
-                $code = substr($code, 0, $end);
+        if ($start === false) {
+            throw new \Exception("Unable to extract method code: " . $code);
+        }
+        $end = strrpos($code, '}');
+        if ($end !== false) {
+            $endAbs = strpos($code, '{');
+            if ($endAbs !== false) {
+                $endAbs--;
+                $abstractPart = trim(substr($code, $start, $endAbs - $start + 1));
+            } else {
+                throw new \Exception("Unable to extract method code: " . $code);
             }
-            $end = strrpos($code, ')');
+            return substr($code, $start, $end - $start + 1);     
         } else {
-            $end = strrpos($code, '}');
+            $isAbstract = true;
+            $end = strpos($code, ';');
+            if ($end !== false) {
+                $end--;
+                $abstractPart = trim(substr($code, $start, $end - $start + 1));
+            } else {
+                $end = strlen($code);
+                $abstractPart = trim(substr($code, $start, $end - $start + 1));
+            }
         }
         return substr($code, $start, $end - $start + 1);        
     }
@@ -1396,9 +1529,19 @@ class Compose {
             $class .= $sep . 'readonly';
             $sep = ' ';
         }
-        if ($this->abstract && $this->type === static::TYPE_CLASS) {
-            $class .= $sep . 'abstract';
-            $sep = ' ';
+        if ($this->type === static::TYPE_CLASS) {
+            if ($this->abstract) {
+                $class .= $sep . 'abstract';
+                $sep = ' ';
+            } else {
+                foreach($this->methods as $method) {
+                    if ($method->overriding & static::ABSTRACT) {
+                        $class .= $sep . 'abstract';
+                        $sep = ' ';
+                        break;
+                    }
+                }
+            }
         }
 
         if ($this->type === static::TYPE_CLASS) {
