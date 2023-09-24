@@ -3,7 +3,7 @@
  * @package Pajarotin\Compose
  * @author Alberto Mora Cao <gmlamora@gmail.com>
  * @copyright 2023 Alberto Mora Cao
- * @version $Revision: 0.0.3 $ 
+ * @version $Revision: 0.1.0 $ 
  * @license https://mit-license.org/ MIT
  */
 
@@ -131,7 +131,7 @@ final class TestCompose extends TestCase
             return 'ctmValue';
         }
         METHOD;
-        $compose->addMethod('ctm', $method, $visibility = Compose::PUBLIC, $scope = Compose::INSTANCE, $overriding = Compose::OVERRIDABLE, $returnsReference = false);
+        $compose->addMethod('ctm', $method, $flags = Compose::PUBLIC | Compose::INSTANCE | Compose::OVERRIDABLE | Compose::RETURNS_VALUE);
         $compose->compile();
         $reflection = new \ReflectionClass($namespace . '\\' . $className);
         
@@ -204,13 +204,13 @@ final class TestCompose extends TestCase
         $namespace = 'Pajarotin\\Test\\Compose';
         $compose = new Compose($className, $namespace);
 
-        $compose->addProperty('publicInstanceProperty', true, 'publicInstancePropertyValue', $visibility = Compose::PUBLIC, $scope = Compose::INSTANCE, $type = null);
-        $compose->addProperty('protectedInstanceProperty', true, 'protectedInstancePropertyValue', $visibility = Compose::PROTECTED, $scope = Compose::INSTANCE, $type = null);
-        $compose->addProperty('privateInstanceProperty', true, 'privateInstancePropertyValue', $visibility = Compose::PRIVATE, $scope = Compose::INSTANCE, $type = null);
+        $compose->addProperty('publicInstanceProperty', 'publicInstancePropertyValue', $flags = Compose::PUBLIC | Compose::INSTANCE, $type = null);
+        $compose->addProperty('protectedInstanceProperty', 'protectedInstancePropertyValue', $flags = Compose::PROTECTED | Compose::INSTANCE, $type = null);
+        $compose->addProperty('privateInstanceProperty', 'privateInstancePropertyValue', $flags = Compose::PRIVATE | Compose::INSTANCE, $type = null);
 
-        $compose->addProperty('publicStaticProperty', true, 'publicStaticPropertyValue', $visibility = Compose::PUBLIC, $scope = Compose::STATIC, $type = null);
-        $compose->addProperty('protectedStaticProperty', true, 'protectedStaticPropertyValue', $visibility = Compose::PROTECTED, $scope = Compose::STATIC, $type = null);
-        $compose->addProperty('privateStaticProperty', true, 'privateStaticPropertyValue', $visibility = Compose::PRIVATE, $scope = Compose::STATIC, $type = null);
+        $compose->addProperty('publicStaticProperty', 'publicStaticPropertyValue', $flags = Compose::PUBLIC | Compose::STATIC, $type = null);
+        $compose->addProperty('protectedStaticProperty', 'protectedStaticPropertyValue', $flags = Compose::PROTECTED | Compose::STATIC, $type = null);
+        $compose->addProperty('privateStaticProperty', 'privateStaticPropertyValue', $flags = Compose::PRIVATE | Compose::STATIC, $type = null);
         $compose->compile();
 
         $reflection = new \ReflectionClass($namespace . '\\' . $className);
@@ -281,54 +281,68 @@ final class TestCompose extends TestCase
         $className = 'TestClassMethod';
         $namespace = 'Pajarotin\\Test\\Compose';
         $compose = new Compose($className, $namespace);
-
-        $method = <<<METHOD
-() {
-    return 'publicInstanceMethodValue';
-}
-METHOD;
-        $compose->addMethod('publicInstanceMethod', $method, $visibility = Compose::PUBLIC, $scope = Compose::INSTANCE, $overriding = Compose::OVERRIDABLE, $returnsReference = false);
+        $compose->addProperty('a', 'default a value');
+        $compose->addProperty('b', 'default b value');
+        $compose->addProperty('c', 'default c value');
+        $compose->addProperty('d', 'default d value', Compose::STATIC);
+        $compose->addProperty('e', 'default e value', Compose::STATIC);
+        $compose->addProperty('f', 'default f value', Compose::STATIC);
+        $compose->addProperty('g', 'default g value');
         
-        $method = <<<METHOD
+        $method = <<<'METHOD'
 () {
-    return 'protectedInstanceMethodValue';
+    return $this->a;
 }
 METHOD;
-        $compose->addMethod('protectedInstanceMethod', $method, $visibility = Compose::PROTECTED, $scope = Compose::INSTANCE, $overriding = Compose::OVERRIDABLE, $returnsReference = false);
-
-        $method = <<<METHOD
+        $compose->addMethod('publicInstanceMethod', $method, $flags = Compose::PUBLIC | Compose::INSTANCE | Compose::OVERRIDABLE | Compose::RETURNS_VALUE);
+        
+        $method = <<<'METHOD'
 () {
-    return 'privateInstanceMethodValue';
+    return $this->b;
 }
 METHOD;
-        $compose->addMethod('privateInstanceMethod', $method, $visibility = Compose::PRIVATE, $scope = Compose::INSTANCE, $overriding = Compose::OVERRIDABLE, $returnsReference = false);
+        $compose->addMethod('protectedInstanceMethod', $method, $flags = Compose::PROTECTED | Compose::INSTANCE | Compose::OVERRIDABLE | Compose::RETURNS_VALUE);
 
-        $method = <<<METHOD
+        $method = <<<'METHOD'
 () {
-    return 'publicStaticMethodValue';
+    return $this->c;
+}
+METHOD;
+        $compose->addMethod('privateInstanceMethod', $method, $flags = Compose::PRIVATE | Compose::INSTANCE | Compose::OVERRIDABLE | Compose::RETURNS_VALUE);
+
+        $method = <<<'METHOD'
+() {
+    return static::$d;
 }
 METHOD;        
-        $compose->addMethod('publicStaticMethod', $method, $visibility = Compose::PUBLIC, $scope = Compose::STATIC, $overriding = Compose::OVERRIDABLE, $returnsReference = false);
+        $compose->addMethod('publicStaticMethod', $method, $flags = Compose::PUBLIC | Compose::STATIC | Compose::OVERRIDABLE | Compose::RETURNS_VALUE);
 
-        $method = <<<METHOD
+        $method = <<<'METHOD'
 () {
-    return 'protectedStaticMethodValue';
+    return static::$e;
 }
 METHOD;
-        $compose->addMethod('protectedStaticMethod', $method, $visibility = Compose::PROTECTED, $scope = Compose::STATIC, $overriding = Compose::OVERRIDABLE, $returnsReference = false);
+        $compose->addMethod('protectedStaticMethod', $method, $flags = Compose::PROTECTED | Compose::STATIC | Compose::OVERRIDABLE | Compose::RETURNS_VALUE);
 
-        $method = <<<METHOD
+        $method = <<<'METHOD'
 () {
-    return 'privateStaticMethodValue';
+    return static::$f;
 }
 METHOD;
-        $compose->addMethod('privateStaticMethod', $method, $visibility = Compose::PRIVATE, $scope = Compose::STATIC, $overriding = Compose::OVERRIDABLE, $returnsReference = false);
+        $compose->addMethod('privateStaticMethod', $method, $flags = Compose::PRIVATE | Compose::STATIC | Compose::OVERRIDABLE | Compose::RETURNS_VALUE);
+
+        $method = <<<'METHOD'
+() {
+    return $this->a;
+}
+METHOD;
+        $compose->addMethod('publicReferenceMethod', $method, $flags = Compose::PUBLIC | Compose::INSTANCE | Compose::OVERRIDABLE | Compose::RETURNS_REFERENCE);
 
         $compose->compile();
         $reflection = new \ReflectionClass($namespace . '\\' . $className);
         $methods = $reflection->getMethods();
         $this->assertIsArray($methods);
-        $this->assertEquals(6, count($methods));
+        $this->assertEquals(7, count($methods));
         $checked = 0;
         foreach($methods as $method) {
             if ($method->getName() == 'publicInstanceMethod') {
@@ -336,6 +350,7 @@ METHOD;
                 $this->assertEquals(false, $method->isProtected());
                 $this->assertEquals(false, $method->isPrivate());
                 $this->assertEquals(false, $method->isStatic());
+                $this->assertEquals(false, $method->returnsReference());
                 $checked++;
             }
             if ($method->getName() == 'protectedInstanceMethod') {
@@ -343,6 +358,7 @@ METHOD;
                 $this->assertEquals(true, $method->isProtected());
                 $this->assertEquals(false, $method->isPrivate());
                 $this->assertEquals(false, $method->isStatic());
+                $this->assertEquals(false, $method->returnsReference());
                 $checked++;
             }
             if ($method->getName() == 'privateInstanceMethod') {
@@ -350,6 +366,7 @@ METHOD;
                 $this->assertEquals(false, $method->isProtected());
                 $this->assertEquals(true, $method->isPrivate());
                 $this->assertEquals(false, $method->isStatic());
+                $this->assertEquals(false, $method->returnsReference());
                 $checked++;
             }
             if ($method->getName() == 'publicStaticMethod') {
@@ -357,6 +374,7 @@ METHOD;
                 $this->assertEquals(false, $method->isProtected());
                 $this->assertEquals(false, $method->isPrivate());
                 $this->assertEquals(true, $method->isStatic());
+                $this->assertEquals(false, $method->returnsReference());
                 $checked++;
             }
             if ($method->getName() == 'protectedStaticMethod') {
@@ -364,6 +382,7 @@ METHOD;
                 $this->assertEquals(true, $method->isProtected());
                 $this->assertEquals(false, $method->isPrivate());
                 $this->assertEquals(true, $method->isStatic());
+                $this->assertEquals(false, $method->returnsReference());
                 $checked++;
             }
             if ($method->getName() == 'privateStaticMethod') {
@@ -371,10 +390,19 @@ METHOD;
                 $this->assertEquals(false, $method->isProtected());
                 $this->assertEquals(true, $method->isPrivate());
                 $this->assertEquals(true, $method->isStatic());
+                $this->assertEquals(false, $method->returnsReference());
+                $checked++;
+            }
+            if ($method->getName() == 'publicReferenceMethod') {
+                $this->assertEquals(true, $method->isPublic());
+                $this->assertEquals(false, $method->isProtected());
+                $this->assertEquals(false, $method->isPrivate());
+                $this->assertEquals(false, $method->isStatic());
+                $this->assertEquals(true, $method->returnsReference());
                 $checked++;
             }
         }
-        $this->assertEquals(6, $checked);
+        $this->assertEquals(7, $checked);
     }
 
     public function testFuseClassConstant() {
@@ -862,7 +890,7 @@ METHOD;
         $namespace = 'Pajarotin\\Test\\Compose';
         $compose = new Compose($className, $namespace);
         $compose->deferredBuild(function($compose) {
-            $compose->addProperty('publicInstanceProperty', true, 'publicInstancePropertyValue', $visibility = Compose::PUBLIC, $scope = Compose::INSTANCE, $type = null);
+            $compose->addProperty('publicInstanceProperty', 'publicInstancePropertyValue', $flags = Compose::PUBLIC | Compose::INSTANCE, $type = null);
         });
 
         $exists = class_exists($namespace . '\\' . $className, false);
@@ -891,7 +919,7 @@ METHOD;
         $namespace = 'Pajarotin\\Test\\Compose';
         $compose = new Compose($className, $namespace);
 
-        $compose->addProperty('publicInstanceProperty', true, 'publicInstancePropertyValue', $visibility = Compose::PUBLIC, $scope = Compose::INSTANCE, $type = null);
+        $compose->addProperty('publicInstanceProperty', 'publicInstancePropertyValue', $flags = Compose::PUBLIC | Compose::INSTANCE, $type = null);
         $compose->removeProperty('publicInstanceProperty');
         $compose->compile();
 
@@ -911,7 +939,7 @@ METHOD;
     return 'publicInstanceMethodValue';
 }
 METHOD;
-        $compose->addMethod('publicInstanceMethod', $method, $visibility = Compose::PUBLIC, $scope = Compose::INSTANCE, $overriding = Compose::OVERRIDABLE, $returnsReference = false);
+        $compose->addMethod('publicInstanceMethod', $method, $flags = Compose::PUBLIC | Compose::INSTANCE | Compose::OVERRIDABLE | Compose::RETURNS_VALUE);
         $compose->removeMethod('publicInstanceMethod');
 
         $compose->compile();
@@ -1049,7 +1077,7 @@ METHOD;
             $isReadOnly = true;
         }        
         if (version_compare(PHP_VERSION, '7.4') >= 0) {
-            $compose->addProperty('rop', false, null, $visibility = Compose::PRIVATE, $scope = Compose::INSTANCE, $type = 'string', $isReadOnly);
+            $compose->addProperty('rop', null, $flags = Compose::PRIVATE | Compose::INSTANCE | Compose::READ_ONLY, $type = 'string');
         }
         if (version_compare(PHP_VERSION, '8.2') >= 0) {
             $compose->isReadOnly(true);
@@ -1070,6 +1098,10 @@ METHOD;
 
             if (method_exists($property, 'isReadOnly')) {
                 $this->assertEquals(true, $property->isReadOnly());
+            }
+            if (method_exists($property, 'hasType') && $property->hasType()) {
+                $type = $property->getType()-> __toString();
+                $this->assertEquals('string', $type);
             }
         }
     }
@@ -1103,5 +1135,113 @@ METHOD;
         
         $property = $reflection->getProperty('abs');
         $this->assertEquals(true, is_object($property));
+    }
+
+    public function testUpdateConstant() {
+        $className = 'TestUpdateConstant';
+        $namespace = 'Pajarotin\\Test\\Compose';
+        $compose = Compose::newClass($className, $namespace);
+        $compose->addConstant('constantine', 'v1.0', Compose::PROTECTED);
+        $compose->updateConstant('constantine', 'constantine2', 'v2.0', Compose::PUBLIC);
+        $compose->compile();
+
+        $reflection = new \ReflectionClass($namespace . '\\' . $className);
+        $constants = $reflection->getConstants(\ReflectionClassConstant::IS_PROTECTED);
+        $this->assertIsArray($constants);
+        $this->assertEquals(0, count($constants));        
+        $constants = $reflection->getConstants(\ReflectionClassConstant::IS_PUBLIC);
+        $this->assertIsArray($constants);
+        $this->assertEquals(1, count($constants));
+        $this->assertEquals(true, array_key_exists('constantine2', $constants));
+        $this->assertEquals('v2.0', $constants['constantine2']);
+    }
+
+    public function testUpdateProperty() {
+        $className = 'TestUpdateProperty';
+        $namespace = 'Pajarotin\\Test\\Compose';
+        $compose = Compose::newClass($className, $namespace);
+        $compose->addProperty('ep0', 'private property', Compose::PRIVATE);
+        $compose->updateProperty('ep0', 'dp', 'protected property', Compose::PROTECTED);
+        $compose->addProperty('dp0', 'protected property', Compose::PROTECTED);
+        $compose->updateProperty('dp0', 'cp', 'public property', Compose::PUBLIC);
+        $compose->addProperty('cp0', 'public property', Compose::PUBLIC);
+        $compose->updateProperty('cp0', 'ep', 'private property', Compose::PRIVATE);
+        $compose->addProperty('ep0', 'private property', Compose::PRIVATE);
+        $compose->updateProperty('ep0', 'dsp', 'protected static property', Compose::PROTECTED | Compose::STATIC);
+
+        $compose->addProperty('etp', 'private typed property', Compose::PRIVATE, 'string');
+        $compose->updateProperty('etp', 'eup', null, Compose::NO_DEFAULT_VALUE | Compose::NO_TYPE);
+        $compose->addProperty('etpBis', 'private typed property', Compose::PRIVATE, 'string');
+        $compose->updateProperty('etpBis', null, null, Compose::NO_DEFAULT_VALUE | Compose::NO_TYPE);
+        $compose->compile();
+
+        $reflection = new \ReflectionClass($namespace . '\\' . $className);
+        $properties = $reflection->getProperties();
+        $this->assertIsArray($properties);
+        $this->assertEquals(6, count($properties));
+        $checked = 0;
+        foreach($properties as $property) {
+            if ($property->getName() == 'cp') {
+                $this->assertEquals(true, $property->hasDefaultValue());
+                $this->assertEquals('public property', $property->getDefaultValue());
+                $this->assertEquals(true, $property->isPublic());
+                $this->assertEquals(false, $property->isProtected());
+                $this->assertEquals(false, $property->isPrivate());
+                $this->assertEquals(false, $property->isStatic());
+                $checked++;
+            }
+            if ($property->getName() == 'dp') {
+                $this->assertEquals(true, $property->hasDefaultValue());
+                $this->assertEquals('protected property', $property->getDefaultValue());
+                $this->assertEquals(false, $property->isPublic());
+                $this->assertEquals(true, $property->isProtected());
+                $this->assertEquals(false, $property->isPrivate());
+                $this->assertEquals(false, $property->isStatic());
+                $checked++;
+            }
+            if ($property->getName() == 'ep') {
+                $this->assertEquals(true, $property->hasDefaultValue());
+                $this->assertEquals('private property', $property->getDefaultValue());
+                $this->assertEquals(false, $property->isPublic());
+                $this->assertEquals(false, $property->isProtected());
+                $this->assertEquals(true, $property->isPrivate());
+                $this->assertEquals(false, $property->isStatic());
+                $checked++;
+            }
+            if ($property->getName() == 'dsp') {
+                $this->assertEquals(true, $property->hasDefaultValue());
+                $this->assertEquals('protected static property', $property->getDefaultValue());
+                $this->assertEquals(false, $property->isPublic());
+                $this->assertEquals(true, $property->isProtected());
+                $this->assertEquals(false, $property->isPrivate());
+                $this->assertEquals(true, $property->isStatic());
+                $checked++;
+            }
+            if ($property->getName() == 'eup') {
+                $this->assertEquals(true, $property->hasDefaultValue());    //Always returns true, is a php thing
+                $this->assertSame(null, $property->getDefaultValue());
+                $this->assertEquals(false, $property->isPublic());
+                $this->assertEquals(false, $property->isProtected());
+                $this->assertEquals(true, $property->isPrivate());
+                $this->assertEquals(false, $property->isStatic());
+                if (method_exists($property, 'hasType')) {
+                    $this->assertEquals(false, $property->hasType());
+                }
+                $checked++;
+            }
+            if ($property->getName() == 'etpBis') {
+                $this->assertEquals(true, $property->hasDefaultValue());    //Always returns true, is a php thing
+                $this->assertSame(null, $property->getDefaultValue());
+                $this->assertEquals(false, $property->isPublic());
+                $this->assertEquals(false, $property->isProtected());
+                $this->assertEquals(true, $property->isPrivate());
+                $this->assertEquals(false, $property->isStatic());
+                if (method_exists($property, 'hasType')) {
+                    $this->assertEquals(false, $property->hasType());
+                }
+                $checked++;
+            }
+        }
+        $this->assertEquals(6, $checked);
     }
 }
