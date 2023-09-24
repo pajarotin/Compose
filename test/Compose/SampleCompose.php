@@ -3,7 +3,7 @@
  * @package Pajarotin\Compose
  * @author Alberto Mora Cao <gmlamora@gmail.com>
  * @copyright 2023 Alberto Mora Cao
- * @version $Revision: 0.0.1 $ 
+ * @version $Revision: 0.1.0 $ 
  * @license https://mit-license.org/ MIT
  */
 
@@ -39,6 +39,16 @@ $compose = new Compose('DesiredFinalClass', 'Pajarotin\\Test\\Compose');
 $compose->fuseClass('DonorSampleClass', 'Pajarotin\\Test\\Compose');
 $compose->fuseClass('DeltaCompose', 'Pajarotin\\Test\\Compose');
 $compose->deferredCompilation();
+/*
+$desired = new DesiredFinalClass();
+$desired->setData('Bad Wolf');
+$val = $desired->getData();
+
+echo($val);
+*/
+$compose = new Compose('WhatIf', 'Pajarotin\\Test\\Compose');
+$compose->fuseClass('DesiredFinalClass', 'Pajarotin\\Test\\Compose');
+$compose->compile();
 
 $desired = new DesiredFinalClass();
 $desired->setData('Bad Wolf');
