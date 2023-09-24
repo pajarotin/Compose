@@ -18,6 +18,7 @@
  - Deferred composed class/trait build (configuration of composed class and), linked to php autoload system
  - Update constant before compilation
  - Update property before compilation
+ - Update method before compilation
  - ¡ FULLY EXPERIMENTAL CODE !
 
 ##  "Favor composition over inheritance"
