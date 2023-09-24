@@ -11,3 +11,9 @@
 * Allow composition with trait parts
 * Add readonly flag for class and properties
 * Repair implementation of abstract methods
+
+## Version 0.1.0 (Sun, September 24 2023)
+* Allow updating constants
+* Allow updating properties
+* Signature of addProperty changed to operate with flags instead of a growing list of parameters (similar to new updateProperty method)
+* Signature of addMethod changed to operate with flags instead of a growing list of parameters (similar to new updateProperty method)
