@@ -3,7 +3,7 @@
  * @package Pajarotin\Compose
  * @author Alberto Mora Cao <gmlamora@gmail.com>
  * @copyright 2023 Alberto Mora Cao
- * @version $Revision: 0.1.0 $ 
+ * @version $Revision: 0.1.1 $ 
  * @license https://mit-license.org/ MIT
  */
 
