@@ -3,7 +3,7 @@
  * @package Pajarotin\Compose
  * @author Alberto Mora Cao <gmlamora@gmail.com>
  * @copyright 2023 Alberto Mora Cao
- * @version $Revision: 0.1.0 $ 
+ * @version $Revision: 0.1.1 $ 
  * @license https://mit-license.org/ MIT
  */
 
@@ -126,11 +126,11 @@ final class TestCompose extends TestCase
         $namespace = 'Pajarotin\\Test\\Compose';
         $compose = new Compose($className, $namespace);
         $compose->addInterface('donorInterface', 'Pajarotin\\Test\\Compose');
-        $method = <<<METHOD
-        () {
-            return 'ctmValue';
-        }
-        METHOD;
+        $method = <<<'METHOD'
+() {
+    return 'ctmValue';
+}
+METHOD;
         $compose->addMethod('ctm', $method, $flags = Compose::PUBLIC | Compose::INSTANCE | Compose::OVERRIDABLE | Compose::RETURNS_VALUE);
         $compose->compile();
         $reflection = new \ReflectionClass($namespace . '\\' . $className);
@@ -1244,4 +1244,101 @@ METHOD;
         }
         $this->assertEquals(6, $checked);
     }
+
+    public function testUpdateMethod() {
+        $className = 'TestUpdateMethod';
+        $namespace = 'Pajarotin\\Test\\Compose';
+        $compose = Compose::newClass($className, $namespace);
+
+        $closure = function &() {
+            return $this->a;
+        };
+
+        $method = <<<'METHOD'
+        publicInstanceMethod() {
+            return $this->a;
+        }
+METHOD;
+
+        $closure2 = function &() {
+            return $this->a;
+        };
+
+        $method2 = <<<'METHOD'
+        publicInstanceMethod2() {
+            return $this->a;
+        }
+METHOD;
+        $compose->addProperty('a', 'private property a', Compose::PRIVATE);
+        $compose->addMethod('publicMethod', $method, $flags = Compose::PUBLIC | Compose::INSTANCE);
+        $compose->addMethod('publicRClosure', $closure, $flags = Compose::PUBLIC | Compose::INSTANCE);
+        $compose->addMethod('publicClosure', $closure, $flags = Compose::PUBLIC | Compose::INSTANCE | Compose::RETURNS_VALUE);
+
+        $compose->addMethod('publicMethodBis', $method, $flags = Compose::PUBLIC | Compose::INSTANCE);
+        $compose->addMethod('publicRClosureBis', $closure, $flags = Compose::PUBLIC | Compose::INSTANCE);
+        $compose->addMethod('publicClosureBis', $closure, $flags = Compose::PUBLIC | Compose::INSTANCE | Compose::RETURNS_VALUE);
+
+        $compose->updateMethod('publicMethodBis', 'protectedMethodBis', null, $flags = Compose::PRIVATE);
+        $compose->updateMethod('protectedMethodBis', null, null, $flags = Compose::PROTECTED);
+        $compose->updateMethod('publicRClosureBis', 'protectedRClosureBis', null, $flags = Compose::PROTECTED | Compose::ABSTRACT);
+        $compose->updateMethod('publicClosureBis', 'protectedClosureBis', $method2, $flags = Compose::PROTECTED);
+        $compose->compile();
+        $reflection = new \ReflectionClass($namespace . '\\' . $className);
+        $methods = $reflection->getMethods();
+        $this->assertIsArray($methods);
+        $this->assertEquals(6, count($methods));
+        $checked = 0;
+        foreach($methods as $method) {
+            if ($method->getName() == 'publicMethod') {
+                $this->assertEquals(true, $method->isPublic());
+                $this->assertEquals(false, $method->isProtected());
+                $this->assertEquals(false, $method->isPrivate());
+                $this->assertEquals(false, $method->isStatic());
+                $this->assertEquals(false, $method->returnsReference());
+                $checked++;
+            }
+            if ($method->getName() == 'publicRClosure') {
+                $this->assertEquals(true, $method->isPublic());
+                $this->assertEquals(false, $method->isProtected());
+                $this->assertEquals(false, $method->isPrivate());
+                $this->assertEquals(false, $method->isStatic());
+                $this->assertEquals(true, $method->returnsReference());
+                $checked++;
+            }
+            if ($method->getName() == 'publicClosure') {
+                $this->assertEquals(true, $method->isPublic());
+                $this->assertEquals(false, $method->isProtected());
+                $this->assertEquals(false, $method->isPrivate());
+                $this->assertEquals(false, $method->isStatic());
+                $this->assertEquals(false, $method->returnsReference());
+                $checked++;
+            }
+            if ($method->getName() == 'protectedMethodBis') {
+                $this->assertEquals(false, $method->isPublic());
+                $this->assertEquals(true, $method->isProtected());
+                $this->assertEquals(false, $method->isPrivate());
+                $this->assertEquals(false, $method->isStatic());
+                $this->assertEquals(false, $method->returnsReference());
+                $checked++;
+            }
+            if ($method->getName() == 'protectedRClosureBis') {
+                $this->assertEquals(false, $method->isPublic());
+                $this->assertEquals(true, $method->isProtected());
+                $this->assertEquals(false, $method->isPrivate());
+                $this->assertEquals(false, $method->isStatic());
+                $this->assertEquals(true, $method->isAbstract());
+                $this->assertEquals(true, $method->returnsReference());
+                $checked++;
+            }
+            if ($method->getName() == 'protectedClosureBis') {
+                $this->assertEquals(false, $method->isPublic());
+                $this->assertEquals(true, $method->isProtected());
+                $this->assertEquals(false, $method->isPrivate());
+                $this->assertEquals(false, $method->isStatic());
+                $this->assertEquals(false, $method->returnsReference());
+                $checked++;
+            }
+        }
+        $this->assertEquals(6, $checked);
+    }    
 }
