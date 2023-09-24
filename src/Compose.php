@@ -4,7 +4,7 @@ namespace Pajarotin\Compose;
  * @package Pajarotin\Compose
  * @author Alberto Mora Cao <gmlamora@gmail.com>
  * @copyright 2023 Alberto Mora Cao
- * @version $Revision: 0.0.3 $ 
+ * @version $Revision: 0.1.0 $ 
  * @license https://mit-license.org/ MIT
  * 
  * "Favor composition over inheritance"
@@ -72,11 +72,11 @@ namespace Pajarotin\Compose;
  *   - removeInterface($interfaceName, $namespace = '')
  *   - addTrait($traitName, $namespace = '')
  *   - removeTrait($traitName, $namespace = '')
- *   - addConstant($name, $value, $visibility = Compose::PUBLIC)
+ *   - addConstant($name, $value, $flags = Compose::PUBLIC)
  *   - removeConstant($name)
- *   - addProperty($name, $hasDefaultValue, $defaultValue, $visibility = Compose::PRIVATE, $scope = Compose::INSTANCE, $type = null, $isReadOnly = false)
+ *   - addProperty($name, $defaultValue, $flags = Compose::PUBLIC | Compose::INSTANCE | Compose::READ_WRITE, $type = null)
  *   - removeProperty($name)
- *   - addMethod($name, $value, $visibility = Compose::PRIVATE, $scope = Compose::INSTANCE, $overriding = Compose::OVERRIDABLE, $returnsReference = false)
+ *   - addMethod($name, $value, $flags = Compose::PUBLIC | Compose::INSTANCE | Compose::OVERRIDABLE)
  *   - removeMethod($name)
  *   - fuseClass($className, $namespace)
  *   - fuseClassConstant($className, $name, $namespace)
@@ -104,51 +104,93 @@ class Compose {
 
     /**
      * Scope: instance, regular method or property
-     * @const INSTANCE 0
+     * @const INSTANCE 1
      */
-    const INSTANCE = 0;
+    const INSTANCE = 1;
 
     /**
      * Scope: class, static method or property
-     * @const STATIC 1
+     * @const STATIC 2
      */
-    const STATIC = 1;
+    const STATIC = 2;
 
     /**
      * Visibility: public method, property or constant
-     * @const PUBLIC 2
+     * @const PUBLIC 4
      */
-    const PUBLIC = 2;
+    const PUBLIC = 4;
 
     /**
      * Visibility: protected method, property or constant
-     * @const PROTECTED 4
+     * @const PROTECTED 8
      */
-    const PROTECTED = 4;
+    const PROTECTED = 8;
 
     /**
      * Visibility: private method, property or constant
-     * @const PRIVATE 8
+     * @const PRIVATE 16
      */
-    const PRIVATE = 8;
+    const PRIVATE = 16;
 
     /**
      * Overriding: class or method is not abstract nor final
-     * @const OVERRIDABLE 16
+     * @const OVERRIDABLE 32
      */
-    const OVERRIDABLE = 16;
+    const OVERRIDABLE = 32;
 
     /**
      * Overriding: class or method is abstract
-     * @const ABSTRACT 16
+     * @const ABSTRACT 64
      */
-    const ABSTRACT = 32;
+    const ABSTRACT = 64;
 
     /**
      * Overriding: class or method is final
-     * @const FINAL 64
+     * @const FINAL 128
      */
-    const FINAL = 64;
+    const FINAL = 128;
+
+    /**
+     * Updating value, forces null
+     * @const ISNULL 256
+     */
+    const ISNULL = 256;
+
+    /**
+     * Updating modificator, forces read only
+     * @const READ_ONLY 512
+     */
+    const READ_ONLY = 512;
+
+    /**
+     * Updating modificator, forces read and write
+     * @const READ_WRITE 1024
+     */
+    const READ_WRITE = 1024;
+
+    /**
+     * Updating modificator, erases default value
+     * @const NO_DEFAULT_VALUE 2048
+     */
+    const NO_DEFAULT_VALUE = 2048;
+
+    /**
+     * Updating modificator, erases type info
+     * @const NO_TYPE 4096
+     */
+    const NO_TYPE = 4096;
+
+    /**
+     * Updating modificator, method returns value
+     * @const RETURNS_VALUE 8192
+     */
+    const RETURNS_VALUE = 8192;
+
+    /**
+     * Updating modificator, method returns reference
+     * @const RETURNS_REFERENCE 16384
+     */
+    const RETURNS_REFERENCE = 16384;
 
     /**
      * Composed class namespace
@@ -526,18 +568,68 @@ class Compose {
      * Adds a constant to the composed class
      * @param string $name
      * @param mixed $value
-     * @param Compose::PUBLIC|Compose::PROTECTED|Compose::PRIVATE $visibility
+     * @param int $flags bitmap of Compose::PUBLIC|Compose::PROTECTED|Compose::PRIVATE
      * @return Pajarotin\Compose\Compose
      */
-    public function addConstant($name, $value, $visibility = Compose::PUBLIC) {
+    public function addConstant($name, $value, $flags = Compose::PUBLIC) {
         if (!strlen($name) || $this->type === static::TYPE_TRAIT) {
             return $this;
         }
         $std = new \stdClass();
         $std->name = $name;
         $std->value = $value;
-        $std->visibility = $visibility;
+        $visibility =  static::filterVisibility($flags);
+        if ($visibility !== null) {
+            $std->visibility = $visibility;
+        } else {
+            $std->visibility = static::PUBLIC;
+        }
         $this->constants[$name] = $std;
+        return $this;
+    }
+
+
+    /**
+     * Update constant properties
+     * @param string $name
+     * @param string $newName if null don't change name
+     * @param mixed $value    if null don't change value, unles flag Compose::ISNULL is specified
+     * @param int $flags bitmap of:
+     *      Compose::PUBLIC|Compose::PROTECTED|Compose::PRIVATE changes visibility
+     *      Compose::ISNULL sets null as constant value
+     * if null don't change visibility
+     * @return Pajarotin\Compose\Compose
+     */
+    public function updateConstant($name, $newName, $value, $flags) {
+        $old = null;
+        foreach($this->constants as $item) {
+            if ($item->name === $name) {
+                $old = $item;
+                break;
+            } 
+        }
+        if (!$old) {
+            return $this;
+        }
+        $update = new \stdClass();
+        if ($newName !== null) {
+            $update->name = $newName;
+        } else {
+            $update->name = $old->name;
+        }
+        if ($value !== null || ($flags & static::ISNULL)) {
+            $update->value = $value;            
+        } else {
+            $update->value = $old->value;
+        }
+        $visibility =  static::filterVisibility($flags);
+        if ($visibility !== null) {
+            $update->visibility = $visibility;
+        } else {
+            $update->visibility = $old->visibility;
+        }
+        $this->removeConstant($name);
+        $this->constants[$update->name] = $update;
         return $this;
     }
 
@@ -574,27 +666,139 @@ class Compose {
     /**
      * Adds a property to the composed class/trait
      * @param string $name
-     * @param bool $hasDefaultValue
-     * @param mixed $defaultValue
-     * @param Compose::PUBLIC|Compose::PROTECTED|Compose::PRIVATE $visibility
-     * @param Compose::INSTANCE|Compose::STATIC $scope
-     * @param string $type
-     * @param bool $readOnly
+     * @param mixed $defaultValue if null no default value, unless flag Compose::ISNULL is used
+     * @param int $flags bitmap of:
+     *      Compose::PUBLIC|Compose::PROTECTED|Compose::PRIVATE if not indicated defaults to Compose::PUBLIC
+     *      Compose::INSTANCE|Compose::STATIC if not indicated defaults to Compose::INSTANCE
+     *      Compose::NO_DEFAULT_VALUE if set, indicates no default value, the $defaultValue parameter is ignored
+     *      Compose::ISNULL if $defaultValue is null indicates null default value
+     *      Compose::READ_ONLY|Compose::READ_WRITE if not indicated, defaults to Compose::READ_WRITE
+     * @param string $type if null or Compose::NO_TYPE is set, this param is ignored
      * @return Pajarotin\Compose\Compose
      */
-    public function addProperty($name, $hasDefaultValue, $defaultValue, $visibility = Compose::PRIVATE, $scope = Compose::INSTANCE, $type = null, $readOnly = false) {
+    public function addProperty($name, $defaultValue, $flags = Compose::PUBLIC | Compose::INSTANCE, $type = null) {
         if (!strlen($name)) {
             return $this;
         }
         $std = new \stdClass();
         $std->name = $name;
-        $std->hasDefaultValue = $hasDefaultValue;
-        $std->defaultValue = $defaultValue;
-        $std->visibility = $visibility;
-        $std->scope = $scope;
-        $std->type = $type;
-        $std->readOnly = $readOnly;
+
+        if ($flags & static::NO_DEFAULT_VALUE) {
+            $std->hasDefaultValue = false;
+            $std->defaultValue = null;
+        } else if ($defaultValue !== null || ($flags & static::ISNULL)) {
+            $std->hasDefaultValue = true;
+            $std->defaultValue = $defaultValue;
+        } else {
+            $std->hasDefaultValue = false;
+            $std->defaultValue = null;
+        }
+
+        $visibility =  static::filterVisibility($flags);
+        if ($visibility !== null) {
+            $std->visibility = $visibility;
+        } else {
+            $std->visibility = Compose::PUBLIC;
+        }
+        
+        $scope = static::filterScope($flags);
+        if ($scope !== null) {
+            $std->scope = $scope;
+        } else {
+            $std->scope = static::INSTANCE;
+        }
+
+        if ($flags & static::NO_TYPE) {
+            $std->type = null;
+        } else {
+            $std->type = $type;
+        }
+
+        $readOnly = static::filterReadOnly($flags);
+        if ($readOnly !== null) {
+            $std->readOnly = $readOnly;
+        } else {
+            $std->readOnly = false;
+        }
+
         $this->properties[$name] = $std;
+        return $this;
+    }
+
+    /**
+     * Updates a property configuration
+     * @param string $name
+     * @param string $newName if null don't change name
+     * @param mixed $defaultValue if null don't change default value, unless flag Compose::ISNULL is used
+     * @param int $flags bitmap of:
+     *      Compose::PUBLIC|Compose::PROTECTED|Compose::PRIVATE if not indicated old one is mantained
+     *      Compose::INSTANCE|Compose::STATIC  if not indicated old one is mantained
+     *      Compose::NO_DEFAULT_VALUE if set, erases default value, the $defaultValue parameter is ignored
+     *      Compose::ISNULL if $defaultValue is null indicates new null default value
+     *      Compose::READ_ONLY|Compose::READ_WRITE if not indicated defaults to old one
+     * @param string $type is null defaults to old one, if Compose::NO_TYPE is set old type is erased
+     * @return Pajarotin\Compose\Compose
+     */
+    public function updateProperty($name, $newName, $defaultValue, $flags = null, $type = null) {
+        $old = null;
+        foreach($this->properties as $item) {
+            if ($item->name === $name) {
+                $old = $item;
+                break;
+            } 
+        }
+        if (!$old) {
+            return $this;
+        }
+        $update = new \stdClass();
+        if ($newName !== null) {
+            $update->name = $newName;
+        } else {
+            $update->name = $old->name;
+        }
+
+        if ($flags & static::NO_DEFAULT_VALUE) {
+            $update->hasDefaultValue = false;
+            $update->defaultValue = null;
+        } else if ($defaultValue !== null || ($flags & static::ISNULL)) {
+            $update->hasDefaultValue = true;
+            $update->defaultValue = $defaultValue;
+        } else {
+            $update->hasDefaultValue = $old->hasDefaultValue;
+            $update->defaultValue = $old->defaultValue;
+        }
+
+        $visibility = static::filterVisibility($flags);
+        if ($visibility !== null) {
+            $update->visibility = $visibility;
+        } else {
+            $update->visibility = $old->visibility;
+        }
+
+        $scope = static::filterScope($flags);
+        if ($scope !== null) {
+            $update->scope = $scope;
+        } else {
+            $update->scope = $old->scope;
+        }
+
+        if ($flags & static::NO_TYPE) {
+            $update->type = null;
+        } else if ($type !== null) {
+            $update->type = $type;
+        } else {
+            $update->type = $old->type;
+        }
+        
+        $readOnly = static::filterReadOnly($flags);
+        if ($readOnly !== null) {
+            $update->readOnly = $readOnly;
+        } else {
+            $update->readOnly = $old->readOnly;
+        }
+
+        $this->removeProperty($name);
+        $this->properties[$update->name] = $update;
         return $this;
     }
 
@@ -643,28 +847,58 @@ class Compose {
      *  If $value IS A CLOSURE must be defined in its own line
      *  Defining the closure inline in the arguments of addMethod won't work
      *  due to limitations in the source extraction code
-     * @param Compose::PUBLIC|Compose::PROTECTED|Compose::PRIVATE $visibility
-     * @param Compose::INSTANCE|Compose::STATIC $scope
-     * @param Compose::OVERRIDABLE|Compose::ABSTRACT|Compose::FINAL  $overriding
+     * @param int $flags bitmap of:
+     *      Compose::PUBLIC|Compose::PROTECTED|Compose::PRIVATE if not indicated defaults to Compose::PUBLIC
+     *      Compose::INSTANCE|Compose::STATIC if not indicated defaults to Compose::INSTANCE
+     *      Compose::OVERRIDABLE|Compose::FINAL if not indicated, defaults to Compose::OVERRIDABLE
+     *      Compose::ABSTRACT indicates method is abstract
+     *      Compose::RETURNS_VALUE|Compose::RETURNS_REFERENCE if not indicated, defaults to Compose::RETURNS_VALUE
      * @param boolean $returnsReference
      * @return Pajarotin\Compose\Compose
      */
-    public function addMethod($name, $value, $visibility = Compose::PRIVATE, $scope = Compose::INSTANCE, $overriding = Compose::OVERRIDABLE, $returnsReference = false) {
+    public function addMethod($name, $value, $flags = Compose::PUBLIC | Compose::INSTANCE | Compose::OVERRIDABLE | Compose::RETURNS_VALUE) {
         if (!strlen($name)) {
             return $this;
         }
         if (is_a($value, 'Closure')) {
             $method = new \ReflectionFunction($value);
             $code = static::readMethod($method);
-            $value = static::extractYummy($code, $overriding & static::ABSTRACT);
+            $value = static::extractYummy($code, $flags & static::ABSTRACT);
         }
         $std = new \stdClass();
         $std->name = $name;
         $std->value = $value;
-        $std->visibility = $visibility;
-        $std->scope = $scope;
-        $std->overriding = $overriding;
-        $std->returnsReference = $returnsReference;
+        $visibility =  static::filterVisibility($flags);
+        if ($visibility !== null) {
+            $std->visibility = $visibility;
+        } else {
+            $std->visibility = Compose::PUBLIC;
+        }
+        
+        $scope = static::filterScope($flags);
+        if ($scope !== null) {
+            $std->scope = $scope;
+        } else {
+            $std->scope = static::INSTANCE;
+        }
+        
+        $overriding = static::filterOverriding($flags);
+        if ($overriding !== null) {
+            $std->overriding = $overriding;
+        } else {
+            $std->overriding = static::OVERRIDABLE;
+        }
+        if ($flags & static::ABSTRACT) {
+            $std->overriding |= static::ABSTRACT;
+        }
+
+        $returnsReference = static::filterReturnsReference($flags);
+        if ($returnsReference !== null) {
+            $std->returnsReference = $returnsReference;
+        } else {
+            $std->returnsReference = false;
+        }
+
         $lowerName = strtolower($name);
         $this->methods[$lowerName] = $std;
         return $this;
@@ -985,39 +1219,40 @@ class Compose {
             return;
         }
         $name = $property->name;
-        $hasDefaultValue = $property->hasDefaultValue();
+        $flags = 0;
         $defaultValue = null;
-        if ($hasDefaultValue) {
+        if ($property->hasDefaultValue()) {
             $defaultValue = $property->getDefaultValue();
+        } else {
+            $flags |= static::NO_DEFAULT_VALUE;
         }
         
-        $visibility = static::PRIVATE;
         if ($property->isPrivate()) {
-            $visibility = static::PRIVATE;
+            $flags |= static::PRIVATE;
         }
         if ($property->isProtected()) {
-            $visibility = static::PROTECTED;
+            $flags |= static::PROTECTED;
         }
         if ($property->isPublic()) {
-            $visibility = static::PUBLIC;
+            $flags |= static::PUBLIC;
         }
 
-        $scope = static::INSTANCE;
         if ($property->isStatic()) {
-            $scope = static::STATIC;
+            $flags |= static::STATIC;
+        } else {
+            $flags |= static::INSTANCE;
         }
 
         $type = null;
         if (method_exists($property, 'hasType') && $property->hasType()) {
-            $type = $property->getType()-> __toString();
+            $type = $property->getType()->__toString();
         }
 
-        $readOnly = false;
         if (method_exists($property, 'isReadOnly') && $property->isReadOnly()) {
-            $readOnly = true;
+            $flags |= static::READ_ONLY;
         }
         
-        $this->addProperty($name, $hasDefaultValue, $defaultValue, $visibility, $scope, $type, $readOnly);
+        $this->addProperty($name, $defaultValue, $flags, $type);
     }
 
     /**
@@ -1029,36 +1264,41 @@ class Compose {
             return;
         }
         $name = $method->name;
+        $flags = 0;
         $code = static::readMethod($method);
         $value = static::extractYummy($code, $method->isAbstract());
         
-        $visibility = static::PRIVATE;
         if ($method->isPrivate()) {
-            $visibility = static::PRIVATE;
-        }
-        if ($method->isProtected()) {
-            $visibility = static::PROTECTED;
-        }
-        if ($method->isPublic()) {
-            $visibility = static::PUBLIC;
+            $flags |= static::PRIVATE;
+        } else if ($method->isProtected()) {
+            $flags |= static::PROTECTED;
+        } else if ($method->isPublic()) {
+            $flags |= static::PUBLIC;
         }
 
-        $scope = static::INSTANCE;
         if ($method->isStatic()) {
-            $scope = static::STATIC;
+            $flags |= static::STATIC;
+        } else {
+            $flags |= static::INSTANCE;
         }
 
-        $overriding = static::OVERRIDABLE;
         if ($method->isAbstract()) {
-            $overriding = static::ABSTRACT;
-        }
-        if ($method->isFinal()) {
-            $overriding = static::FINAL;
+            $flags |= static::ABSTRACT;
         }
 
-        $returnsReference = $method->returnsReference();
+        if ($method->isFinal()) {
+            $flags |= static::FINAL;
+        } else {
+            $flags |= static::OVERRIDABLE;
+        }
+
+        if ($method->returnsReference()) {
+            $flags |= static::RETURNS_REFERENCE;
+        } else {
+            $flags |= static::RETURNS_VALUE;
+        }
     
-        $this->addMethod($name, $value, $visibility, $scope, $overriding, $returnsReference);
+        $this->addMethod($name, $value, $flags);
     }
 
     /**
@@ -1256,18 +1496,20 @@ class Compose {
      * @param Compose::OVERRIDABLE|Compose::ABSTRACT|Compose::FINAL  $overriding
      */
     protected static function overridingToString($overriding) {
-        switch($overriding) {
-            case static::OVERRIDABLE:
-                return '';
-                break;
-            case static::ABSTRACT:
-                return 'abstract';
-                break;
-            case static::FINAL:
-                return 'final';
-                break;
+        $result = '';
+        $sep = ' ';
+        if ($overriding & static::OVERRIDABLE) {
+            // NOP
         }
-        return '';
+        if ($overriding & static::FINAL) {
+            $result .= $sep . 'final';
+            $sep = ' ';
+        }
+        if ($overriding & static::ABSTRACT) {
+            $result .= $sep . 'abstract';
+            $sep = ' ';
+        }
+        return $result;
     }
 
     /**
@@ -1346,5 +1588,87 @@ class Compose {
             }
         }
         return $fullName;
+    }
+
+    /**
+     * Extracts visibility modifier: public, protected, private 
+     * If multiple flags are set public takes preference over protected and protected over private. 
+     * If none is set returns null
+     * @param int $visibility
+     * @param int|null
+     */
+    protected static function filterVisibility($visibility) {
+        if ($visibility & static::PUBLIC) {
+            return static::PUBLIC;
+        } else if ($visibility & static::PROTECTED) {
+            return static::PROTECTED;
+        } else if ($visibility & static::PRIVATE) {
+            return static::PRIVATE;
+        }
+        return null;
+    }
+
+    /**
+     * Extracts scope modifier: instance, static 
+     * If multiple flags are set instance takes preference over static.
+     * If none is set returns null
+     * @param int $scope
+     * @param int|null
+     */
+    protected static function filterScope($scope) {
+        if ($scope & static::INSTANCE) {
+            return static::INSTANCE;
+        } else if ($scope & static::STATIC) {
+            return static::STATIC;
+        }
+        return null;
+    }
+
+    /**
+     * Extracts read/write modifier: read only, read and write
+     * If multiple flags are set read only takes preference over read and write
+     * If none is set returns null
+     * @param int $readOnly
+     * @param int|null
+     */
+    protected static function filterReadOnly($readOnly) {
+        if ($readOnly & static::READ_ONLY) {
+            return true;
+        } else if ($readOnly & static::READ_WRITE) {
+            return false;
+        }
+        return null;
+    }
+
+    /**
+     * Extracts overriding modifier: final, overridable
+     * If multiple flags are set final takes preference over overridable
+     * If none is set returns null
+     * @param int $overriding
+     * @param int|null
+     */
+    protected static function filterOverriding($overriding) {
+        if ($overriding & static::FINAL) {
+            return static::FINAL;
+        } else if ($overriding & static::OVERRIDABLE) {
+            return static::OVERRIDABLE;
+        }
+        return null;
+    }
+
+    /**
+     * Extracts "method returns reference" flag: true/false
+     * If multiple flags are set reference takes preference over value
+     * If none is set returns null
+     * @param int $returnsReference
+     * @param bool|null
+     */
+    protected static function filterReturnsReference($returnsReference) {
+        if ($returnsReference & static::RETURNS_REFERENCE) {
+            return true;
+        } else if ($returnsReference & static::RETURNS_VALUE) {
+            return false;
+        }
+        return null;
     }
 }
