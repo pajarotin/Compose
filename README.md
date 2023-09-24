@@ -1,4 +1,4 @@
-# Compose – A tool for class creation, in a "Frankenstein way", for PHP
+# Compose – A tool for class/trait creation, in a "Frankenstein way", for PHP
 
 ## Features
  - Flag composed class as abstract
@@ -16,6 +16,8 @@
  - Add donor class constant to composed class
  - Deferred composed class/trait compilation (evaluation of composed code), linked to php autoload system
  - Deferred composed class/trait build (configuration of composed class and), linked to php autoload system
+ - Update constant before compilation
+ - Update property before compilation
  - ¡ FULLY EXPERIMENTAL CODE !
 
 ##  "Favor composition over inheritance"
@@ -25,6 +27,8 @@ This tool allows composing a class or a trait by code, with chunks of previous c
  - methods can be added or copied from a previous class or trait
  - traits can be added or copied from a previous class
  - interfaces can be added or copied from a previous class (only to a class)
+ - Before compilation any part can be removed
+ - Before compilation constants and properties can also be updated
 
 These features can be used to automate changes to third parties source code, without resorting to editing it directly.
 
