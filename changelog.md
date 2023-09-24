@@ -17,3 +17,8 @@
 * Allow updating properties
 * Signature of addProperty changed to operate with flags instead of a growing list of parameters (similar to new updateProperty method)
 * Signature of addMethod changed to operate with flags instead of a growing list of parameters (similar to new updateProperty method)
+
+* ## Version 0.1.1 (Sun, September 24 2023)
+* Allow updating methods
+* Refactorization of function code extraction
+* Minor changes in methods signature (default parameters)
