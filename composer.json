@@ -1,6 +1,12 @@
 {
     "name": "pajarotin/compose",
+    "type": "library",
+    "description": "Compose - A tool for class/trait creation, in a 'Frankenstein way', for PHP",
+    "keywords": ["class","composition","creation","frankenstein","php","trait"],
+    "homepage": "https://github.com/pajarotin/Compose",
+    "license": "MIT",
     "require": {
+        "php": ">=7.4.0"
     },
     "require-dev": {
         "phpunit/phpunit": "^9.5"
